@@ -1,0 +1,14 @@
+; @author Naoki Nishida
+; @cops 876
+(format CTRS oriented :problem infeasibility)
+(fun a 0)
+(fun c 1)
+(fun f 2)
+(fun g 1)
+(fun h 1)
+(fun s 1)
+(rule (f x y) (g x) (= (c (g x)) (c a)))
+(rule (f x y) (h x) (= (c (h x)) (c a)))
+(rule (g (s x)) x)
+(rule (h (s x)) x)
+(infeasible? (= (c (g x1)) (c a)) (= (c (h x1)) (c a)))

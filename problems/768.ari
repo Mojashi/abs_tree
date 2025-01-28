@@ -1,0 +1,14 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @cops 913
+(format TRS :problem infeasibility)
+(fun a 0)
+(fun c 0)
+(fun f 1)
+(fun g 1)
+(fun h 1)
+(rule a (f c))
+(rule a (h c))
+(rule (f x) (h (g x)))
+(rule (h x) (f (g x)))
+(infeasible? (= (f c) x) (= (h c) x))

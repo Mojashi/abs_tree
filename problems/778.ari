@@ -1,0 +1,16 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @doi 10.1007/3-540-45744-5_49
+; @cops 923
+; [153] Example 21
+(format TRS :problem infeasibility)
+(fun F 2)
+(fun a 0)
+(fun b 0)
+(fun f 2)
+(fun g 2)
+(fun h 1)
+(rule (g a y) y)
+(rule (f x a) (f x (g x b)))
+(rule (g (h x) y) (g x (h y)))
+(infeasible? (= (F x (g x b)) (F y a)))

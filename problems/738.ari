@@ -1,0 +1,9 @@
+; @author Naoki Nishida
+; @cops 882
+(format CTRS oriented :problem infeasibility)
+(fun cons 2)
+(fun last 1)
+(fun nil 0)
+(rule (last (cons x y)) x (= y nil))
+(rule (last (cons x y)) z (= y (cons u v)) (= (last y) z))
+(infeasible? (= x4 nil) (= x4 (cons x1 x2)) (= (last x4) x5))

@@ -1,0 +1,14 @@
+; @author Naoki Nishida
+; @cops 872
+(format CTRS oriented :problem infeasibility)
+(fun a 0)
+(fun b 0)
+(fun c 0)
+(fun pin 1)
+(fun pout 1)
+(fun tc 1)
+(rule (pin a) (pout b))
+(rule (pin b) (pout c))
+(rule (tc x) x)
+(rule (tc x) y (= (pin x) (pout z)) (= (tc z) y))
+(infeasible? (= (pin x2) (pout x1)) (= (tc x1) x3))

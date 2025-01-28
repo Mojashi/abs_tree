@@ -1,0 +1,7 @@
+; @author Florian Messner
+; @cops 1143
+(format CTRS oriented :problem infeasibility)
+(fun a 0)
+(fun b 0)
+(rule a b (= a b))
+(infeasible? (= a b))

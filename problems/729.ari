@@ -1,0 +1,12 @@
+; @author Naoki Nishida
+; @cops 873
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun e 1)
+(fun false 0)
+(fun s 1)
+(fun true 0)
+(rule (e 0) true)
+(rule (e (s x)) true (= (e x) false))
+(rule (e (s x)) false (= (e x) true))
+(infeasible? (= (e x1) false) (= (e x1) true))

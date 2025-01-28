@@ -1,0 +1,14 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @doi 10.1007/3-540-45744-5_49
+; @cops 920
+; [153] Example 13
+(format TRS :problem infeasibility)
+(fun F 1)
+(fun a 0)
+(fun b 0)
+(fun f 1)
+(fun g 1)
+(rule a b)
+(rule (f (g a)) (f a))
+(infeasible? (= (F a) (F (g a))))

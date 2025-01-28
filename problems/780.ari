@@ -1,0 +1,16 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @cops 925
+; [154] Example 1.3.13
+(format CTRS oriented :problem infeasibility)
+(fun a 0)
+(fun b 0)
+(fun c 0)
+(fun f 1)
+(fun g 1)
+(rule a b)
+(rule c (f a))
+(rule (f a) c)
+(rule c (g b))
+(rule (f x) (g x) (= (f x) (g b)))
+(infeasible? (= (f b) x) (= (g a) x))

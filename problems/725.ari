@@ -1,0 +1,13 @@
+; @author Naoki Nishida
+; @cops 869
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun cons 2)
+(fun orient 2)
+(fun pair 2)
+(fun s 1)
+(rule (cons x (cons y rest)) (cons z1 (cons z2 rest)) (= (orient x y) (pair z1 z2)))
+(rule (cons x (cons x rest)) (cons x rest))
+(rule (orient (s x) (s y)) (pair (s z1) (s z2)) (= (orient x y) (pair z1 z2)))
+(rule (orient (s x) 0) (pair 0 (s x)))
+(infeasible? (= (orient x y) (pair z1 z2)))

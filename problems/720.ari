@@ -1,0 +1,14 @@
+; @author Naoki Nishida
+; @cops 864
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun false 0)
+(fun p 1)
+(fun pos 1)
+(fun s 1)
+(fun true 0)
+(rule (pos (s 0)) true)
+(rule (pos 0) false)
+(rule (pos (s x)) true (= (pos x) true))
+(rule (pos (p x)) false (= (pos x) false))
+(infeasible? (= (pos 0) true))

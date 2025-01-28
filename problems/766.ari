@@ -1,0 +1,10 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @cops 911
+(format TRS :problem infeasibility)
+(fun a 0)
+(fun f 2)
+(rule (f x (f y z)) (f (f x y) (f x z)))
+(rule (f (f x y) z) (f (f x z) (f y z)))
+(rule (f (f x y) (f y z)) y)
+(infeasible? (= (f a a) x) (= a x))

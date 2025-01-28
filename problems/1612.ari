@@ -1,0 +1,20 @@
+; @author René Thiemann
+; secret problem 2024
+; category: INF
+(format CTRS oriented :problem infeasibility)
+(fun ack 2)
+(fun s 1)
+(fun O 0)
+(fun isNat 1)
+(fun true 0)
+(fun false 0)
+(fun seven 0)
+(rule (ack (s m) (s n)) (ack m (ack (s m) n)))
+(rule (ack (s m) O) (ack m (s O)))
+(rule (ack O n) (s n))
+(rule (isNat O) true)
+(rule (isNat (s m)) (isNat m))
+(rule (isNat true) false)
+(rule (isNat false) false)
+(rule seven (s (s (s (s (s (s (s O))))))))
+(infeasible? (= (isNat (ack seven seven)) true))

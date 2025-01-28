@@ -1,0 +1,18 @@
+; @author Naoki Nishida
+; @cops 903
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun cons 2)
+(fun false 0)
+(fun le 2)
+(fun min 1)
+(fun nil 0)
+(fun s 1)
+(fun true 0)
+(rule (le x 0) false)
+(rule (le 0 (s y)) true)
+(rule (le (s x) (s y)) (le x y))
+(rule (min (cons x nil)) x)
+(rule (min (cons x xs)) x (= (min xs) y) (= (le x y) true))
+(rule (min (cons x xs)) y (= (min xs) y) (= (le x y) false))
+(infeasible? (= (min nil) x1) (= (le x2 x1) true))

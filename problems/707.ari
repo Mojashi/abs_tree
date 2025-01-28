@@ -1,0 +1,10 @@
+; @author Naoki Nishida
+; @cops 851
+(format CTRS oriented :problem infeasibility)
+(fun cons 2)
+(fun isnoc 1)
+(fun nil 0)
+(fun tp2 2)
+(rule (isnoc (cons y nil)) (tp2 nil y))
+(rule (isnoc (cons x ys)) (tp2 (cons x xs) y) (= (isnoc ys) (tp2 xs y)))
+(infeasible? (= (isnoc nil) (tp2 x3 x4)))

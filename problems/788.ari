@@ -1,0 +1,18 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @doi 10.4230/LIPIcs.FSCD.2016.29
+; @cops 933
+; [90] Example 16
+(format CTRS oriented :problem infeasibility)
+(fun a 0)
+(fun b 0)
+(fun c 0)
+(fun d 0)
+(fun f 2)
+(fun g 2)
+(rule (f a x) a)
+(rule (f b x) b)
+(rule (g a x) c (= (f x a) a))
+(rule (g x a) d (= (f x b) b))
+(rule c c)
+(infeasible? (= (f a b) b) (= (f a a) a))

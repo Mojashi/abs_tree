@@ -1,0 +1,8 @@
+; @author Akihisa Yamada
+; @cops 1277
+(format TRS :problem infeasibility)
+(fun f 1)
+(fun g 1)
+(rule (f (f x)) (f (g (f x))))
+(rule (f x) x)
+(infeasible? (= x (g x)))

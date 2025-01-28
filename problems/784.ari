@@ -1,0 +1,10 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @cops 929
+(format CTRS oriented :problem infeasibility)
+(fun a 0)
+(fun b 0)
+(fun f 1)
+(rule (f x) a (= a x))
+(rule (f x) b (= b x))
+(infeasible? (= a x) (= b x))

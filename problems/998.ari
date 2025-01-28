@@ -1,0 +1,17 @@
+; @author Florian Messner
+; @cops 1144
+(format CTRS oriented :problem infeasibility)
+(fun a 0)
+(fun b 0)
+(fun f 2)
+(fun g 2)
+(fun h 1)
+(fun k 1)
+(rule (f y a) (g x x) (= (h z) x) (= y (k z)) (= x b))
+(rule (f y z) (k x) (= z (h a)) (= y (k a)) (= a x))
+(rule (k x) (h x))
+(rule (k x) b)
+(rule (k x) a)
+(rule a b)
+(rule (g x x) a)
+(infeasible? (= (f x y) (g z z)))

@@ -1,0 +1,23 @@
+; @author Raul Gutierrez
+; @author Salvador Lucas
+; @cops 930
+; [101] Example 5.1
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun div 2)
+(fun greater 2)
+(fun leq 2)
+(fun m 2)
+(fun pair 2)
+(fun s 1)
+(fun true 0)
+(rule (div x y) (pair 0 y) (= (greater y x) true))
+(rule (div x y) (pair (s q) r) (= (leq y x) true) (= (div (m x y) y) (pair q r)))
+(rule (m x 0) x)
+(rule (m 0 y) 0)
+(rule (m (s x) (s y)) (m x y))
+(rule (greater (s x) (s y)) (greater x y))
+(rule (greater (s x) 0) true)
+(rule (leq (s x) (s y)) (leq x y))
+(rule (leq 0 x) true)
+(infeasible? (= (leq x w) true) (= (div (m w x) x) (pair y z)) (= (greater x w) true))

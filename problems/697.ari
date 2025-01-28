@@ -1,0 +1,17 @@
+; @author Naoki Nishida
+; @cops 841
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun add 2)
+(fun gcd 2)
+(fun iadd 1)
+(fun s 1)
+(fun tp2 2)
+(rule (gcd z y) (gcd x y) (= (iadd z) (tp2 x y)))
+(rule (gcd y z) (gcd x y) (= (iadd z) (tp2 x y)))
+(rule (gcd x 0) x)
+(rule (gcd 0 x) x)
+(rule (iadd y) (tp2 0 y))
+(rule (iadd (s z)) (tp2 (s x) y) (= (iadd z) (tp2 x y)))
+(rule (iadd (add x y)) (tp2 x y))
+(infeasible? (= (iadd 0) (tp2 x x1)))
