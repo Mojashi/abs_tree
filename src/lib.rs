@@ -1,6 +1,6 @@
-pub mod tree_automaton;
-pub mod term;
-pub mod ari;
+pub mod barmc;
 pub mod trs;
-pub mod ictrs;
-pub mod sexp;
+pub mod tree_automaton;
+pub mod abstractor;
+pub mod ts_impl;
+pub mod util;

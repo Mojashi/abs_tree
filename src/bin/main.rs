@@ -1,8 +1,9 @@
-use abs_tree::{ari::parse_file, ictrs::{ICTRS, ITRS}};
+use abs_tree::trs::{ari::parse_file, ictrs::ICTRS};
 
 fn main() {
-    let problem_file = "./problems/664.ari";
-    let problem: ICTRS<_> = parse_file(problem_file).unwrap();
-    let itrs: ITRS<u32> = problem.to_itrs().rename_symbols_to_u32();
-    println!("{}", itrs);
+    let problem_file = std::env::args().nth(1).unwrap();
+
+    let problem: ICTRS<_> = parse_file(&problem_file).unwrap();
+    let res = problem.solve();
+    println!("{:?}", res);
 }

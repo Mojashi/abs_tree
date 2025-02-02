@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use crate::{
-    ictrs::{Query, ICTRS}, sexp::SExpression, term::Term, trs::{ConditionalRule, Fun, Rule, CTRS}
-};
+
+use crate::trs::{ictrs::Query, sexp::SExpression, term::Term, trs::{ConditionalRule, Fun, Rule, CTRS}};
+
+use super::ictrs::ICTRS;
 /*
    CTRS ::= ( format CTRS cond-type ) fun* rule*
 cond-type ::= oriented | join | semi-equational

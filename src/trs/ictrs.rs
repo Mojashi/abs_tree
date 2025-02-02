@@ -1,10 +1,7 @@
-use std::fmt::{self, Display};
-
-use crate::{
-    term::SymbolTrait,
-    trs::{crule_to_rule, ConditionalRule, Rule, CTRS, TRS},
-};
+use std::{collections::HashSet, fmt::{self, Display}};
 use itertools::Itertools;
+
+use super::{term::SymbolTrait, trs::{crule_to_rule, ConditionalRule, Fun, Rule, CTRS, TRS}};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Query<F: SymbolTrait> {
@@ -39,6 +36,12 @@ impl<F: SymbolTrait> ICTRS<F> {
             .map(|c| c.clone())
             .collect_vec();
         let query_num_conds = conds.len();
+        if query_num_conds == 0 {
+            return ITRS {
+                trs,
+                query: main_rule,
+            };
+        }
         let intermidiate_fun = trs.get_or_insert_condition_intermidiate_func(query_num_conds);
 
         let query_crule = ConditionalRule {
@@ -58,6 +61,9 @@ impl<F: SymbolTrait> ICTRS<F> {
 }
 
 impl<F: SymbolTrait> ITRS<F> {
+    pub fn funs(&self) -> Vec<Fun<F>> {
+        self.trs.funs.clone()
+    }
     pub fn rename_symbols_to_u32(&self) -> ITRS<u32> {
         let (trs, sym_map) = self.trs.rename_symbols_to_u32();
         ITRS {

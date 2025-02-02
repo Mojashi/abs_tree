@@ -1,11 +1,73 @@
-use crate::term::{SymbolTrait, Term};
 use itertools::Itertools;
-use std::{collections::HashMap, fmt::{self, Display}};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+};
+
+use super::term::{GroundTerm, SymbolTrait, Term};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Rule<F: SymbolTrait> {
     pub lhs: Term<F>,
     pub rhs: Term<F>,
+}
+
+impl Rule<String> {
+    // uppercase -> function, lowercase -> variable
+    // (F x y -> G x y)
+    pub fn from_string(s: &str) -> Result<Self, &'static str> {
+        let (lhs, rhs) = s.split("->").collect_tuple().ok_or("Invalid rule")?;
+        let lhs = GroundTerm::from_string(lhs.trim())?;
+        let rhs = GroundTerm::from_string(rhs.trim())?;
+        let (l_funcs, r_funcs) = (lhs.extract_funcs(), rhs.extract_funcs());
+        let var_symbols = l_funcs
+            .union(&r_funcs)
+            .filter(|f| f.symbol.chars().next().unwrap().is_lowercase())
+            .collect::<Vec<_>>();
+        let mut symbol_map = HashMap::new();
+        for (i, f) in var_symbols.iter().enumerate() {
+            symbol_map.insert(f.symbol.clone(), i as u32);
+        }
+        let lhs = lhs.to_term_with_varmap(&symbol_map);
+        let rhs = rhs.to_term_with_varmap(&symbol_map);
+        Ok(Rule { lhs, rhs })
+    }
+}
+
+impl<F> Rule<F>
+where
+    F: SymbolTrait,
+{
+    pub fn rename_symbols(&self, fun_map: &HashMap<F, u32>) -> Rule<u32> {
+        Rule {
+            lhs: self.lhs.rename_symbols(fun_map),
+            rhs: self.rhs.rename_symbols(fun_map),
+        }
+    }
+    pub fn is_right_linear(&self) -> bool {
+        self.rhs.is_linear()
+    }
+    pub fn is_left_linear(&self) -> bool {
+        self.lhs.is_linear()
+    }
+
+    pub fn is_right_vars_contained_in_left(&self) -> bool {
+        self.rhs.vars().is_subset(&self.lhs.vars())
+    }
+
+    pub fn reversed(&self) -> Rule<F> {
+        Rule {
+            lhs: self.rhs.clone(),
+            rhs: self.lhs.clone(),
+        }
+    }
+
+    pub fn apply(&self, term: &GroundTerm<F>) -> Vec<GroundTerm<F>> {
+        term.match_term(&self.lhs)
+            .into_iter()
+            .map(move |m| self.rhs.subst_ground(&m))
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -29,7 +91,7 @@ fn gen_conditional_intermidiate_rule<F: SymbolTrait>(f: Fun<F>) -> Rule<F> {
             Term::Variable { symbol: 1 as u32 },
         ]
         .into_iter()
-        .chain((0..(f.arity * 2)).map(|j| Term::Variable {
+        .chain((0..(f.arity - 2)).map(|j| Term::Variable {
             symbol: (j / 2 + 2) as u32,
         }))
         .collect(),
@@ -91,9 +153,9 @@ impl<F: SymbolTrait> CTRS<F> {
     pub fn to_trs(&self) -> TRS<F> {
         let max_num_conds: usize = self.rules.iter().map(|r| r.conds.len()).max().unwrap();
         let intermidiate_functions = (1..=max_num_conds)
-            .map(|arity| Fun {
+            .map(|num_conds| Fun {
                 symbol: F::new(),
-                arity,
+                arity: num_conds * 2 + 2,
                 condition_intermidiate_fun: true,
             })
             .collect_vec();
@@ -127,7 +189,8 @@ impl<F: SymbolTrait> CTRS<F> {
 }
 
 impl<F: SymbolTrait> TRS<F> {
-    pub fn get_or_insert_condition_intermidiate_func(&mut self, arity: usize) -> Fun<F> {
+    pub fn get_or_insert_condition_intermidiate_func(&mut self, num_cond: usize) -> Fun<F> {
+        let arity = num_cond * 2 + 2;
         if let Some(f) = self
             .funs
             .iter()
@@ -252,21 +315,4 @@ impl<F: SymbolTrait + Display> fmt::Display for CTRS<F> {
         }
         Ok(())
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::term::SymbolTrait;
-
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    struct TestSymbol(String);
-
-    impl SymbolTrait for TestSymbol {
-        fn new() -> Self {
-            TestSymbol("test".to_string())
-        }
-    }
-
-    #[test]
-    fn test_to_ctrs() {}
 }
