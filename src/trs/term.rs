@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     fmt::{self, write, Display},
     iter::once,
     sync::atomic::AtomicU32,
@@ -19,6 +19,8 @@ pub struct GroundTerm<F: SymbolTrait> {
     pub symbol: F,
     pub children: Vec<GroundTerm<F>>,
 }
+
+type TermPos = VecDeque<usize>;
 
 impl GroundTerm<String> {
     pub fn to_string(&self) -> String {
@@ -87,12 +89,48 @@ impl<F: SymbolTrait> GroundTerm<F> {
         }
     }
 
+    pub fn subst_term_with_pos(&self, pos: &[usize], t: &Term<F>) -> Term<F> {
+        if pos.is_empty() {
+            t.clone()
+        } else {
+            let cur = pos[0];
+            let rest = &pos[1..];
+            let children = self
+                .children
+                .iter()
+                .enumerate()
+                .map(|(idx, c)| {
+                    if idx == cur {
+                        c.subst_term_with_pos(rest, t)
+                    } else {
+                        c.to_term_with_varmap(&hashmap! {})
+                    }
+                })
+                .collect();
+            Term::Function {
+                symbol: self.symbol.clone(),
+                children,
+            }
+        }
+    }
+
     // subtermにもマッチする
-    pub fn match_term_with_subterm(&self, t: &Term<F>) -> Vec<HashMap<u32, GroundTerm<F>>> {
+    pub fn match_term_with_subterm(
+        &self,
+        t: &Term<F>,
+    ) -> Vec<(HashMap<u32, GroundTerm<F>>, TermPos)> {
         self.children
             .iter()
-            .flat_map(|c| c.match_term_with_subterm(t))
-            .chain(self.match_term(t).into_iter())
+            .enumerate()
+            .flat_map(|(children_idx, c)| {
+                c.match_term_with_subterm(t)
+                    .into_iter()
+                    .map(move |(a, mut p)| {
+                        p.push_front(children_idx.clone());
+                        (a, p)
+                    })
+            })
+            .chain(self.match_term(t).into_iter().map(|a| (a, VecDeque::new())))
             .collect()
     }
 
@@ -107,6 +145,9 @@ impl<F: SymbolTrait> GroundTerm<F> {
                 let mut match_here: HashMap<u32, GroundTerm<F>> = HashMap::new();
                 for (c, t) in self.children.iter().zip(children.iter()) {
                     let r2 = c.match_term(t);
+                    if r2.is_none() {
+                        return None;
+                    }
                     for r2map in r2.iter() {
                         for (k, v) in r2map.iter() {
                             if match_here.contains_key(k) {
@@ -298,4 +339,14 @@ impl SymbolTrait for u32 {
     fn new() -> Self {
         new_symbol() as u32
     }
+}
+
+#[test]
+fn test_match() {
+    let gt = GroundTerm::from_string("(104 (102) (102) (101 (103 (102)) (102)) (103 (102)))").unwrap();
+    let pat = GroundTerm::from_string("(104 (102) (102) (101 v_0 v_0) (103 v_0))")
+        .unwrap()
+        .to_term_with_varmap(&hashmap! {"v_0".to_string() => 0});
+
+    assert_eq!(gt.match_term_with_subterm(&pat), vec![]);
 }

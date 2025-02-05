@@ -8,6 +8,7 @@ use crate::{
         trs::{Fun, Rule},
     },
 };
+use itertools::Itertools;
 use maplit::hashmap;
 use std::collections::HashSet;
 
@@ -120,7 +121,9 @@ impl TransitionSystem for TransitionSystemITRS {
             return None;
         }
         //within.save_dot("within.dot");
-        for m in matches {
+        for (m, pos) in matches {
+            assert!(m.keys().collect::<HashSet<_>>() == reversed_rule.lhs.vars().iter().collect());
+            println!("pos: {:?}", pos);
             for (k, v) in m.iter() {
                 println!("m: {} -> {}", k, v);
             }
@@ -129,11 +132,14 @@ impl TransitionSystem for TransitionSystemITRS {
                 .map(|(k, v)| (k as u32, v.to_term_with_varmap(&hashmap! {})))
                 .collect();
             let res = reversed_rule.rhs.subst_term(&m);
-            println!("res: {}", res);
-            if let Some(ret) = within.find_intersection_with_subterm(&res) {
+            println!("res1: {}", res);
+            let res = c.subst_term_with_pos(&pos.into_iter().collect_vec(), &res);
+            println!("res2: {}", res);
+            if let Some(ret) = within.find_intersection_with_term(&res) {
                 return Some(ret);
             }
         }
+        //assert!(false);
         None
     }
 }

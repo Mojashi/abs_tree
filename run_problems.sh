@@ -10,4 +10,4 @@ run_cargo() {
 
 export -f run_cargo
 
-find "$PROBLEMS_DIR" -type f | parallel -j 5 --results ./logs run_cargo {}
+find "$PROBLEMS_DIR" -type f | parallel -j 1 --results ./logs run_cargo {}
