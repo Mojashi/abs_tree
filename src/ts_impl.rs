@@ -91,7 +91,7 @@ impl TransitionSystem for TransitionSystemITRS {
         within: &Self::ConfigLang,
         opid: Self::OperationId,
     ) -> Option<Self::Config> {
-        //println!("prev_within: c:{}\nrule:{}", c, self.itrs.trs.rules[opid]);
+        println!("prev_within: c:{}\nrule:{}", c, self.itrs.trs.rules[opid]);
         let reversed_rule = &self.itrs.trs.rules[opid].reversed();
         let matches = c.match_term(&reversed_rule.lhs);
         if matches.is_empty() {
