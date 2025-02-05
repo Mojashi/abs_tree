@@ -1,6 +1,6 @@
 use super::{
     badconfigs::BadConfigs,
-    transitionsystem::{ConfigLangTrait, ConfigTrait, OperationIdTrait, TransitionSystem},
+    transitionsystem::{ConfigLangTrait, ConfigTrait, TransitionSystem},
 };
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -14,15 +14,22 @@ pub enum BARMCResult<Config: ConfigTrait> {
 type NodeId = usize;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-enum DependsOn<OperationId> {
-    Nexts(Vec<(OperationId, NodeId)>),
+struct Next<T: TransitionSystem> {
+    opid: T::OperationId,
+    next: NodeId,
+    exclusion_confs: Vec<T::Config>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+enum DependsOn<T: TransitionSystem> {
+    Nexts(Vec<Next<T>>),
     Abstract(Vec<NodeId>),
 }
 
-impl<OperationId: OperationIdTrait> DependsOn<OperationId> {
+impl<T: TransitionSystem> DependsOn<T> {
     fn get_dependent_nodes(&self) -> Vec<NodeId> {
         match self {
-            DependsOn::Nexts(nexts) => nexts.iter().map(|(_, n)| *n).collect(),
+            DependsOn::Nexts(nexts) => nexts.iter().map(|n| n.next).collect(),
             DependsOn::Abstract(nexts) => nexts.clone(),
         }
     }
@@ -33,7 +40,7 @@ pub struct Node<T: TransitionSystem> {
     id: NodeId,
     bad: Option<(T::Config, Option<NodeId>)>,
     seq: T::ConfigLang,
-    depends_on: Option<DependsOn<T::OperationId>>,
+    depends_on: Option<DependsOn<T>>,
     referenced_by: HashSet<NodeId>,
     abstracted: bool,
 }
@@ -223,13 +230,17 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         }
     }
 
-    fn gen_nexts(&mut self, id: NodeId) -> DependsOn<T::OperationId> {
+    fn gen_nexts(&mut self, id: NodeId) -> DependsOn<T> {
         println!("gen_nexts {:?}", id);
-        let nexts: Vec<(<T as TransitionSystem>::OperationId, usize)> = self
+        let nexts: Vec<Next<T>> = self
             .transition_system
             .nexts(&self.nodes[id].seq)
             .into_iter()
-            .map(|(opid, seq)| (opid.clone(), self.seq_to_node(seq).id))
+            .map(|(opid, seq)| Next {
+                opid,
+                next: self.seq_to_node(seq).id,
+                exclusion_confs: vec![],
+            })
             .collect();
         println!("nexts {:?}", nexts.len());
         DependsOn::Nexts(nexts)
@@ -310,37 +321,28 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         self.nodes.get(id)
     }
 
-    fn set_node_dependency(&mut self, id: NodeId, depends_on: Option<DependsOn<T::OperationId>>) {
-        if let Some(DependsOn::Nexts(nexts)) = depends_on.clone() {
-            for (opid, next) in nexts {
-                if let Some((nextbad, _)) = self.nodes[next].bad.clone() {
-                    // assert!(!self.nodes[id].seq.accept(&nextbad));
-                    // self.nodes[id].seq.debug_this("cur");
-                    //assert!(self.nodes[next].seq.accept(&nextbad));
-                    //self.nodes[next].seq.debug_this("nex");
-                    let prev =
-                        self.transition_system
-                            .prev_within(&nextbad, &self.nodes[id].seq, opid);
-                    if let Some(prev) = prev {
-                        self.notify_node_is_bad(id, prev.clone(), Some(next));
-                    } else {
-                        self.set_node_dependency(id, None);
-                    }
-                    return;
-                }
-            }
-        }
-
+    fn set_node_dependency(&mut self, id: NodeId, mut depends_on: Option<DependsOn<T>>) {
         for dep in self.nodes[id].get_dependent_nodes() {
             self.nodes[dep].referenced_by.remove(&id);
         }
-        println!("set {:?} {:?}", id, depends_on);
-        self.nodes[id].depends_on = depends_on;
+        //println!("set {:?} {:?}", id, depends_on);
+        self.nodes[id].depends_on = depends_on.clone();
 
         for dep in self.nodes[id].get_dependent_nodes() {
             self.nodes[dep].referenced_by.insert(id);
             self.add_node_to_start_component(dep);
         }
+
+        if let Some(DependsOn::Nexts(nexts)) = depends_on {
+            for (idx, Next { next, opid, .. }) in nexts.iter().enumerate() {
+                if let Some((nextbad, _)) = self.nodes[*next].bad.clone() {
+                    self.nodes[*next].bad = None;
+                    self.notify_node_is_bad(*next, nextbad.clone(), None);
+                    break;
+                }
+            }
+        }
+
     }
     fn clear_node_dependency(&mut self, id: NodeId) {
         for dep in self.nodes[id].get_dependent_nodes() {
@@ -352,7 +354,7 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         }
     }
 
-    fn create_abstraction(&mut self, seq: &T::ConfigLang) -> Option<DependsOn<T::OperationId>> {
+    fn create_abstraction(&mut self, seq: &T::ConfigLang) -> Option<DependsOn<T>> {
         let newseq = (self.abstractor)(seq, &|seq| self.is_contains_bad(seq));
         let newnodeid = self.seq_to_node(newseq).id;
         self.nodes[newnodeid].abstracted = true;
@@ -396,8 +398,8 @@ impl<'a, T: TransitionSystem> BARMC<T> {
                 DependsOn::Nexts(nexts) => {
                     let opid = nexts
                         .iter()
-                        .find(|(_, n)| *n == id)
-                        .map(|(opid, _)| opid)
+                        .find(|Next { next, .. }| *next == id)
+                        .map(|Next { opid, .. }| opid)
                         .unwrap()
                         .clone();
                     let prevconf = self.transition_system.prev_within(
@@ -408,7 +410,31 @@ impl<'a, T: TransitionSystem> BARMC<T> {
                     if let Some(prevconf) = prevconf {
                         self.notify_node_is_bad(ref_by, prevconf.clone(), Some(id));
                     } else {
-                        self.set_node_dependency(ref_by, None);
+                        println!("remove {:?}", id);
+                        let new_aut = self.nodes[ref_by].seq.remove_element(&badconfig);
+                        let newnodeid = self.seq_to_node(new_aut).id;
+                        self.set_node_dependency(ref_by, Some(DependsOn::Nexts(
+                            nexts
+                                .iter()
+                                .map(|Next { next, opid, exclusion_confs }| {
+                                    if *next == id {
+                                        Next {
+                                            next: newnodeid,
+                                            opid: opid.clone(),
+                                            exclusion_confs: exclusion_confs.iter().chain(
+                                                std::iter::once(&badconfig)
+                                            ).cloned().collect_vec(),
+                                        }
+                                    } else {
+                                        Next {
+                                            next: *next,
+                                            opid: opid.clone(),
+                                            exclusion_confs: exclusion_confs.clone(),
+                                        }
+                                    }
+                                })
+                                .collect(),
+                        )));
                     }
                 }
                 DependsOn::Abstract(_) => {
@@ -536,7 +562,7 @@ impl<'a, T: TransitionSystem> BARMC<T> {
                 .iter()
                 .map(|n| self.nodes[*n].clone())
                 .collect_vec();
-            serde_json::to_writer(std::fs::File::create("graph.json").unwrap(), &nodes).unwrap();
+            // serde_json::to_writer(std::fs::File::create("graph.json").unwrap(), &nodes).unwrap();
 
             return BARMCResult::Closed;
         }

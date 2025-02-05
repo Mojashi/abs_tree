@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, write, Display},
+    iter::once,
     sync::atomic::AtomicU32,
 };
 
@@ -86,30 +87,39 @@ impl<F: SymbolTrait> GroundTerm<F> {
         }
     }
 
-    pub fn match_term(&self, t: &Term<F>) -> Vec<HashMap<u32, GroundTerm<F>>> {
+    // subtermにもマッチする
+    pub fn match_term_with_subterm(&self, t: &Term<F>) -> Vec<HashMap<u32, GroundTerm<F>>> {
+        self.children
+            .iter()
+            .flat_map(|c| c.match_term_with_subterm(t))
+            .chain(self.match_term(t).into_iter())
+            .collect()
+    }
+
+    pub fn match_term(&self, t: &Term<F>) -> Option<HashMap<u32, GroundTerm<F>>> {
         match t {
-            Term::Variable { symbol } => vec![hashmap! {*symbol => self.clone()}],
+            Term::Variable { symbol } => Some(hashmap! {*symbol => self.clone()}),
             Term::Function { symbol, children } => {
-                if self.symbol != *symbol {
-                    return vec![];
+                if self.symbol != *symbol || self.children.len() != children.len() {
+                    return None;
                 }
-                if self.children.len() != children.len() {
-                    return vec![];
-                }
-                let mut ret = vec![HashMap::new()];
+
+                let mut match_here: HashMap<u32, GroundTerm<F>> = HashMap::new();
                 for (c, t) in self.children.iter().zip(children.iter()) {
-                    let mut new_ret = vec![];
-                    for r in ret {
-                        let r2 = c.match_term(t);
-                        for r2 in r2 {
-                            let mut r = r.clone();
-                            r.extend(r2);
-                            new_ret.push(r);
+                    let r2 = c.match_term(t);
+                    for r2map in r2.iter() {
+                        for (k, v) in r2map.iter() {
+                            if match_here.contains_key(k) {
+                                if match_here[k] != *v {
+                                    return None;
+                                }
+                            } else {
+                                match_here.insert(*k, v.clone());
+                            }
                         }
                     }
-                    ret = new_ret;
                 }
-                ret
+                Some(match_here)
             }
         }
     }

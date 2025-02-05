@@ -1,11 +1,15 @@
-use std::collections::HashSet;
-use maplit::hashmap;
-
+use crate::trs::term::SymbolTrait;
 use crate::{
     barmc::transitionsystem::{ConfigLangTrait, ConfigTrait, TransitionSystem},
     tree_automaton::tree_automaton::TreeAutomaton,
-    trs::{ictrs::ITRS, term::GroundTerm, trs::Fun},
+    trs::{
+        ictrs::ITRS,
+        term::GroundTerm,
+        trs::{Fun, Rule},
+    },
 };
+use maplit::hashmap;
+use std::collections::HashSet;
 
 impl ConfigTrait for GroundTerm<u32> {}
 impl ConfigLangTrait for TreeAutomaton<u32> {
@@ -26,17 +30,36 @@ impl ConfigLangTrait for TreeAutomaton<u32> {
     fn debug_this(&self, name: &str) {
         self.save_dot(format!("{}.dot", name).as_str());
     }
+
+    fn remove_element(&self, c: &Self::Config) -> Self {
+        self.remove_element(c)
+    }
 }
 
 #[derive(Clone)]
 pub struct TransitionSystemITRS {
     itrs: ITRS<u32>,
     original_funs: HashSet<Fun<u32>>,
-    funs: HashSet<Fun<u32>>,
+    //funs: HashSet<Fun<u32>>,
+    aux_rule_idx: usize, // for query
 }
 
 impl TransitionSystemITRS {
-    pub fn new(itrs: ITRS<u32>) -> Self {
+    pub fn new(mut itrs: ITRS<u32>) -> Self {
+        let start_fun = u32::new();
+        itrs.trs.rules.push(Rule {
+            lhs: crate::trs::term::Term::Function {
+                symbol: start_fun,
+                children: vec![],
+            },
+            rhs: itrs.query.lhs.clone(),
+        });
+        let aux_rule_idx = itrs.trs.rules.len() - 1;
+        itrs.query.lhs = crate::trs::term::Term::Function {
+            symbol: start_fun,
+            children: vec![],
+        };
+
         let funs = itrs.funs().into_iter().collect::<HashSet<_>>();
         let original_funs = funs
             .clone()
@@ -46,7 +69,8 @@ impl TransitionSystemITRS {
         Self {
             itrs,
             original_funs,
-            funs,
+            //funs,
+            aux_rule_idx,
         }
     }
 }
@@ -58,7 +82,7 @@ impl TransitionSystem for TransitionSystemITRS {
 
     fn init_states(&self) -> Vec<Self::ConfigLang> {
         vec![TreeAutomaton::construct_singleton_aut_term(
-            &self.itrs.query.lhs,
+            &self.itrs.query.lhs.clone(),
             &self.original_funs,
         )]
     }
@@ -68,7 +92,7 @@ impl TransitionSystem for TransitionSystemITRS {
     }
 
     fn nexts(&self, conf: &Self::ConfigLang) -> Vec<(usize, Self::ConfigLang)> {
-        assert!(conf.assert_valid_funs(&self.funs));
+        //assert!(conf.assert_valid_funs(&self.funs));
         self.itrs
             .trs
             .rules
@@ -77,10 +101,7 @@ impl TransitionSystem for TransitionSystemITRS {
             .flat_map(|(opid, r)| {
                 conf.apply_trs_rule(r, &self.original_funs)
                     .into_iter()
-                    .map(move |res| {
-                        assert!(res.assert_valid_funs(&self.funs));
-                        (opid, res)
-                    })
+                    .map(move |res| (opid, res))
             })
             .collect()
     }
@@ -91,24 +112,24 @@ impl TransitionSystem for TransitionSystemITRS {
         within: &Self::ConfigLang,
         opid: Self::OperationId,
     ) -> Option<Self::Config> {
-        //println!("prev_within: c:{}\nrule:{}", c, self.itrs.trs.rules[opid]);
+        println!("prev_within: c:{}\nrule:{}", c, self.itrs.trs.rules[opid]);
         let reversed_rule = &self.itrs.trs.rules[opid].reversed();
-        let matches = c.match_term(&reversed_rule.lhs);
+        let matches = c.match_term_with_subterm(&reversed_rule.lhs);
         if matches.is_empty() {
             println!("no match");
             return None;
         }
         //within.save_dot("within.dot");
         for m in matches {
-            // for (k, v) in m.iter() {
-            //     println!("m: {} -> {}", k, v);
-            // }
+            for (k, v) in m.iter() {
+                println!("m: {} -> {}", k, v);
+            }
             let m = m
                 .into_iter()
                 .map(|(k, v)| (k as u32, v.to_term_with_varmap(&hashmap! {})))
                 .collect();
             let res = reversed_rule.rhs.subst_term(&m);
-            //println!("res: {}", res);
+            println!("res: {}", res);
             if let Some(ret) = within.find_intersection_with_subterm(&res) {
                 return Some(ret);
             }

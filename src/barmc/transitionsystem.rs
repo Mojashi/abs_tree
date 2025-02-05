@@ -6,17 +6,22 @@ pub trait ConfigTrait:
     Clone + Eq + std::hash::Hash + std::fmt::Debug + Serialize + for<'a> Deserialize<'a> + Display
 {
 }
-pub trait ConfigLangTrait: Clone + std::fmt::Debug + Serialize + for<'a> Deserialize<'a> + PartialEq + Eq {
+pub trait ConfigLangTrait:
+    Clone + std::fmt::Debug + Serialize + for<'a> Deserialize<'a> + PartialEq + Eq
+{
     type Config: ConfigTrait;
     fn accept(&self, c: &Self::Config) -> bool;
     fn includes(&self, c: &Self) -> bool;
+    fn remove_element(&self, c: &Self::Config) -> Self;
     fn get_dot_label(&self) -> String;
     fn debug_this(&self, name: &str);
     fn is_equal(&self, c: &Self) -> bool {
         self.includes(c) && c.includes(self)
     }
 }
-pub trait OperationIdTrait: Clone + Eq + std::hash::Hash + std::fmt::Debug + Serialize + for<'a> Deserialize<'a> {
+pub trait OperationIdTrait:
+    Clone + Eq + std::hash::Hash + std::fmt::Debug + Serialize + for<'a> Deserialize<'a>
+{
 }
 
 impl OperationIdTrait for usize {}

@@ -205,6 +205,7 @@ impl<F: SymbolTrait> TRS<F> {
                 condition_intermidiate_fun: true,
             };
             self.funs.push(f.clone());
+            self.rules.push(gen_conditional_intermidiate_rule(f.clone()));
             f
         }
     }

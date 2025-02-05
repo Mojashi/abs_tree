@@ -492,26 +492,24 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
                             }
                         }
                     }
-                    if b_parents.len() > 0 {
-                        ret.push((a_parent, b_parents));
-                    }
+                    ret.push((a_parent, b_parents));
                 }
                 ret
             };
 
         let self_sym_to_bottoms = self.symbol_to_bottom_states();
         let otrs_sym_to_bottoms = other.symbol_to_bottom_states();
-        if !self_sym_to_bottoms
-            .keys()
-            .all(|s| otrs_sym_to_bottoms.contains_key(s))
-        {
-            return false;
-        }
         let keys = self_sym_to_bottoms.keys().collect::<HashSet<_>>();
         let inits = keys.iter().flat_map(|s| {
-            self_sym_to_bottoms[s]
-                .iter()
-                .map(|a| (a, otrs_sym_to_bottoms[s].clone()))
+            self_sym_to_bottoms[s].iter().map(|a| {
+                (
+                    a,
+                    otrs_sym_to_bottoms
+                        .get(s)
+                        .unwrap_or(&HashSet::new())
+                        .clone(),
+                )
+            })
         });
         for (&s, states) in inits {
             if self.top_states.contains(&s) && other.top_states.is_disjoint(&states) {
@@ -758,6 +756,78 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
         }
         Some(cur_term)
     }
+
+    pub fn remove_element(&self, elem: &GroundTerm<F>) -> Self {
+        let remove_aut = TreeAutomaton::construct_singleton_aut_ground_term(elem);
+        let trash_state = new_state();
+        let mut other_states = remove_aut.states.clone();
+        other_states.insert(trash_state);
+
+        let states_map: HashMap<(State, State), State> = self
+            .states
+            .iter()
+            .cartesian_product(other_states.iter())
+            .map(|(s1, s2)| ((*s1, *s2), new_state()))
+            .collect();
+        let transitions = self
+            .transitions_topdown
+            .values()
+            .flatten()
+            .cartesian_product(remove_aut.transitions_topdown.values().flatten())
+            .filter(|(t1, t2)| t1.symbol == t2.symbol)
+            .map(|(t1, t2)| Transition {
+                children: t1
+                    .children
+                    .iter()
+                    .zip(t2.children.iter())
+                    .map(|(c1, c2)| states_map[&(*c1, *c2)])
+                    .collect(),
+                parent: states_map[&(t1.parent, t2.parent)],
+                symbol: t1.symbol.clone(),
+            });
+
+        let mut existing_others_symbol_children_pairs: HashMap<F, HashSet<Vec<&State>>> =
+            HashMap::new();
+        for t in remove_aut.transitions_topdown.values().flatten() {
+            existing_others_symbol_children_pairs
+                .entry(t.symbol.clone())
+                .or_insert(HashSet::new())
+                .insert(t.children.iter().collect());
+        }
+        let trash_transitions = self.transitions_topdown.values().flatten().flat_map(|t| {
+            let children_combs = (if t.children.len() > 0 {
+                (0..t.children.len())
+                    .map(|_| other_states.iter())
+                    .multi_cartesian_product()
+                    .collect_vec()
+            } else {
+                vec![vec![]]
+            })
+            .into_iter()
+            .filter(|p| {
+                existing_others_symbol_children_pairs
+                    .get(&t.symbol)
+                    .map_or(true, |s| !s.contains(p))
+            });
+
+            children_combs.map(|children| Transition {
+                children: children
+                    .into_iter()
+                    .zip(t.children.iter())
+                    .map(|(c, &c2)| states_map[&(c2, *c)])
+                    .collect(),
+                parent: states_map[&(t.parent, trash_state)],
+                symbol: t.symbol.clone(),
+            })
+        });
+
+        let top_states = self
+            .top_states
+            .iter()
+            .map(|s| states_map[&(*s, trash_state)])
+            .collect();
+        Self::new(transitions.chain(trash_transitions).collect(), top_states).reduce_size()
+    }
 }
 
 #[cfg(test)]
@@ -859,6 +929,8 @@ mod tests {
         let t2 = GroundTerm::from_string("(b)").unwrap();
         let b = TreeAutomaton::construct_singleton_aut_ground_term(&t2);
 
+        a.save_dot("a.dot");
+        b.save_dot("b.dot");
         assert!(!a.is_subset_of(&b));
         assert!(!b.is_subset_of(&a));
     }
@@ -924,16 +996,23 @@ mod tests {
             symbol: 103,
             children: vec![Term::Variable { symbol: 2 }],
         };
-        let funcs = hashset![Fun {
-            symbol: 103,
-            arity: 1,
-            condition_intermidiate_fun: false
-        }];
+        let funcs = hashset![
+            Fun {
+                symbol: 103,
+                arity: 1,
+                condition_intermidiate_fun: false
+            },
+            Fun {
+                symbol: 0,
+                arity: 0,
+                condition_intermidiate_fun: false
+            }
+        ];
         let aut = TreeAutomaton::construct_singleton_aut_term(&term, &funcs);
         assert!(aut.evaluate(&GroundTerm {
             symbol: 103,
             children: vec![GroundTerm {
-                symbol: 2,
+                symbol: 0,
                 children: vec![]
             }]
         }));
@@ -949,5 +1028,35 @@ mod tests {
         assert!(!a_and_b.evaluate(&a));
         assert!(!a_and_b.evaluate(&b));
         assert!(a_and_b.is_empty());
+    }
+
+    #[test]
+    fn test_remove_element() {
+        let a = GroundTerm::from_string("(f a)").unwrap();
+        let a_aut = TreeAutomaton::construct_singleton_aut_ground_term(&a);
+        let diff = a_aut.remove_element(&a);
+        assert!(diff.is_empty());
+    }
+
+    #[test]
+    fn test_inclusion_() {
+        let b = GroundTerm::from_string("(f b)").unwrap();
+        let b_aut = TreeAutomaton::construct_singleton_aut_ground_term(&b);
+        let diff = TreeAutomaton::new(
+            vec![t(&[], 19, "b"), t(&[19], 13, "f"), t(&[], 18, "a")],
+            hashset![10, 13],
+        );
+        assert!(diff.is_equivalent_to(&b_aut));
+    }
+
+    #[test]
+    fn test_remove_element2() {
+        let a = GroundTerm::from_string("(f a)").unwrap();
+        let b = GroundTerm::from_string("(f b)").unwrap();
+        let a_aut = TreeAutomaton::construct_singleton_aut_ground_term(&a);
+        let b_aut = TreeAutomaton::construct_singleton_aut_ground_term(&b);
+        let u = a_aut.union(&b_aut);
+        let diff = u.remove_element(&a);
+        assert!(diff.is_equivalent_to(&b_aut));
     }
 }
