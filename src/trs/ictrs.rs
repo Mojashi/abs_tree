@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::{self, Display}};
+use std::{collections::{HashMap, HashSet}, fmt::{self, Display}};
 use itertools::Itertools;
 
 use super::{term::SymbolTrait, trs::{crule_to_rule, ConditionalRule, Fun, Rule, CTRS, TRS}};
@@ -64,15 +64,15 @@ impl<F: SymbolTrait> ITRS<F> {
     pub fn funs(&self) -> Vec<Fun<F>> {
         self.trs.funs.clone()
     }
-    pub fn rename_symbols_to_u32(&self) -> ITRS<u32> {
+    pub fn rename_symbols_to_u32(&self) -> (ITRS<u32>, HashMap<F, u32>) {
         let (trs, sym_map) = self.trs.rename_symbols_to_u32();
-        ITRS {
+        (ITRS {
             trs,
             query: Rule {
                 lhs: self.query.lhs.rename_symbols(&sym_map),
                 rhs: self.query.rhs.rename_symbols(&sym_map),
             },
-        }
+        }, sym_map)
     }
 }
 

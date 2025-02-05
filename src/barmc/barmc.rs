@@ -1,10 +1,15 @@
 use super::{
     badconfigs::BadConfigs,
-    transitionsystem::{ConfigLangTrait, OperationIdTrait, TransitionSystem},
+    transitionsystem::{ConfigLangTrait, ConfigTrait, OperationIdTrait, TransitionSystem},
 };
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::{BinaryHeap, HashSet};
+
+pub enum BARMCResult<Config: ConfigTrait> {
+    Closed,
+    BadPath(Vec<Config>),
+}
 
 type NodeId = usize;
 
@@ -26,7 +31,7 @@ impl<OperationId: OperationIdTrait> DependsOn<OperationId> {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Node<T: TransitionSystem> {
     id: NodeId,
-    bad: Option<T::Config>,
+    bad: Option<(T::Config, Option<NodeId>)>,
     seq: T::ConfigLang,
     depends_on: Option<DependsOn<T::OperationId>>,
     referenced_by: HashSet<NodeId>,
@@ -98,7 +103,12 @@ impl<'a, T: TransitionSystem> BARMC<T> {
     }
 
     fn is_starts_bad(&self) -> bool {
-        self.starts.iter().any(|id| self.nodes[*id].bad.is_some())
+        self.get_start_bad().is_some()
+    }
+    fn get_start_bad(&self) -> Option<&T::Config> {
+        self.starts
+            .iter()
+            .find_map(|id| self.nodes[*id].bad.as_ref().map(|(c, _)| c))
     }
 
     fn find_abstraction_node_for(&self, node: &Node<T>) -> Option<NodeId> {
@@ -147,6 +157,7 @@ impl<'a, T: TransitionSystem> BARMC<T> {
 
     // まあ有用っぽいけど遅い
     fn find_concretize_node_for(&self, node: &Node<T>) -> Vec<NodeId> {
+        return vec![];
         self.reachable_frontier
             .iter()
             .map(|(_, id)| id)
@@ -164,24 +175,24 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         let id = self.nodes.len();
         let node = Node::new(id, seq);
         self.add_node(node);
+        //self.nodes[id].seq.debug_this(format!("{:?}", id).as_str());
         return self.get_node(id).unwrap();
     }
 
-    fn get_bad_path(&self, id: NodeId) -> Vec<String> {
+    fn get_bad_path(&self, id: NodeId) -> Vec<T::Config> {
         assert!(self.nodes[id].bad.is_some());
 
         let mut ret = vec![];
         let mut cur = id;
-        while self.nodes[cur].bad.is_some() && self.nodes[cur].depends_on.is_some() {
-            ret.push(format!("{:?}", self.nodes[cur].seq));
-            let next = self.nodes[cur]
-                .get_dependent_nodes()
-                .into_iter()
-                .filter(|n| self.nodes[*n].bad.is_some())
-                .next();
-            cur = next.unwrap();
+        loop {
+            let (bad, bad_from) = self.nodes[cur].bad.clone().unwrap();
+            ret.push(bad);
+            if let Some(from) = bad_from {
+                cur = from;
+            } else {
+                break;
+            }
         }
-        ret.push(format!("{:?}", self.nodes[cur].seq));
         ret
     }
 
@@ -213,12 +224,14 @@ impl<'a, T: TransitionSystem> BARMC<T> {
     }
 
     fn gen_nexts(&mut self, id: NodeId) -> DependsOn<T::OperationId> {
-        let nexts = self
+        println!("gen_nexts {:?}", id);
+        let nexts: Vec<(<T as TransitionSystem>::OperationId, usize)> = self
             .transition_system
             .nexts(&self.nodes[id].seq)
             .into_iter()
             .map(|(opid, seq)| (opid.clone(), self.seq_to_node(seq).id))
             .collect();
+        println!("nexts {:?}", nexts.len());
         DependsOn::Nexts(nexts)
     }
 
@@ -236,7 +249,7 @@ impl<'a, T: TransitionSystem> BARMC<T> {
                 self.gen_nexts(node_id)
             }
         };
-        self.set_node_dependency(node_id, new_dep);
+        self.set_node_dependency(node_id, Some(new_dep));
     }
     fn add_bad(&mut self, conf: &T::Config) {
         if !self.bad.add_config(conf) {
@@ -250,7 +263,7 @@ impl<'a, T: TransitionSystem> BARMC<T> {
             .collect_vec();
         not_bad_nodes.iter().for_each(|&id| {
             if self.nodes[id].seq.accept(&conf) {
-                self.notify_node_is_bad(id, conf.clone());
+                self.notify_node_is_bad(id, conf.clone(), None);
             }
         });
     }
@@ -273,11 +286,11 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         }
         if let Some(badconfig) = self.is_contains_bad(&self.nodes[id].seq) {
             println!("reached bad {:?}", id);
-            self.notify_node_is_bad(id, badconfig);
+            self.notify_node_is_bad(id, badconfig, None);
         } else {
             let concs: Vec<usize> = self.find_concretize_node_for(&self.nodes[id]);
             for conc in concs {
-                self.set_node_dependency(conc, DependsOn::Abstract(vec![id]));
+                self.set_node_dependency(conc, Some(DependsOn::Abstract(vec![id])));
             }
         }
     }
@@ -297,19 +310,22 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         self.nodes.get(id)
     }
 
-    fn set_node_dependency(&mut self, id: NodeId, depends_on: DependsOn<T::OperationId>) {
-        if let DependsOn::Nexts(nexts) = depends_on.clone() {
+    fn set_node_dependency(&mut self, id: NodeId, depends_on: Option<DependsOn<T::OperationId>>) {
+        if let Some(DependsOn::Nexts(nexts)) = depends_on.clone() {
             for (opid, next) in nexts {
-                if let Some(nextbad) = self.nodes[next].bad.clone() {
-                    // assert!(self.nodes[next].seq.accept(&nextbad));
+                if let Some((nextbad, _)) = self.nodes[next].bad.clone() {
                     // assert!(!self.nodes[id].seq.accept(&nextbad));
-                    self.nodes[id].seq.debug_this("cur");
-                    self.nodes[next].seq.debug_this("nex");
-                    let prev = self
-                        .transition_system
-                        .prev_within(&nextbad, &self.nodes[id].seq, opid)
-                        .unwrap();
-                    self.notify_node_is_bad(id, prev.clone());
+                    // self.nodes[id].seq.debug_this("cur");
+                    //assert!(self.nodes[next].seq.accept(&nextbad));
+                    //self.nodes[next].seq.debug_this("nex");
+                    let prev =
+                        self.transition_system
+                            .prev_within(&nextbad, &self.nodes[id].seq, opid);
+                    if let Some(prev) = prev {
+                        self.notify_node_is_bad(id, prev.clone(), Some(next));
+                    } else {
+                        self.set_node_dependency(id, None);
+                    }
                     return;
                 }
             }
@@ -318,9 +334,9 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         for dep in self.nodes[id].get_dependent_nodes() {
             self.nodes[dep].referenced_by.remove(&id);
         }
-        self.nodes[id].depends_on = Some(depends_on.clone());
-
         println!("set {:?} {:?}", id, depends_on);
+        self.nodes[id].depends_on = depends_on;
+
         for dep in self.nodes[id].get_dependent_nodes() {
             self.nodes[dep].referenced_by.insert(id);
             self.add_node_to_start_component(dep);
@@ -343,20 +359,26 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         if seq.is_equal(&self.nodes[newnodeid].seq) {
             return None;
         } else {
+            assert!(*seq != self.nodes[newnodeid].seq);
             return Some(DependsOn::Abstract(vec![newnodeid]));
         }
     }
 
     // set and propagate
-    fn notify_node_is_bad(&mut self, id: NodeId, badconfig: T::Config) {
-        assert!(self.nodes[id].seq.accept(&badconfig));
+    fn notify_node_is_bad(&mut self, id: NodeId, badconfig: T::Config, bad_from: Option<NodeId>) {
+        assert!(
+            self.nodes[id].seq.accept(&badconfig),
+            "{:?} {}",
+            id,
+            badconfig
+        );
         println!("notify {:?} {:?}", id, badconfig);
         println!("referenced_by {:?}", self.nodes[id].referenced_by);
 
         if self.nodes[id].bad.is_some() {
             return;
         }
-        self.nodes[id].bad = Some(badconfig.clone());
+        self.nodes[id].bad = Some((badconfig.clone(), bad_from));
         self.add_bad(&badconfig);
 
         for ref_by in self.nodes[id].referenced_by.clone() {
@@ -378,15 +400,20 @@ impl<'a, T: TransitionSystem> BARMC<T> {
                         .map(|(opid, _)| opid)
                         .unwrap()
                         .clone();
-                    let prevconf = self
-                        .transition_system
-                        .prev_within(&badconfig, &self.nodes[ref_by].seq, opid)
-                        .unwrap();
-                    self.notify_node_is_bad(ref_by, prevconf.clone());
+                    let prevconf = self.transition_system.prev_within(
+                        &badconfig,
+                        &self.nodes[ref_by].seq,
+                        opid,
+                    );
+                    if let Some(prevconf) = prevconf {
+                        self.notify_node_is_bad(ref_by, prevconf.clone(), Some(id));
+                    } else {
+                        self.set_node_dependency(ref_by, None);
+                    }
                 }
                 DependsOn::Abstract(_) => {
                     if self.nodes[ref_by].seq.accept(&badconfig) {
-                        self.notify_node_is_bad(ref_by, badconfig.clone());
+                        self.notify_node_is_bad(ref_by, badconfig.clone(), Some(id));
                     }
                 }
             }
@@ -473,9 +500,9 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         self.print_graph_dot();
         if let Some(id) = { self.pop_frontier_node().map(|n| n.id) } {
             println!("step {:?}", id);
-            if let Some(bad) = &self.nodes[id].bad {
+            if let Some((bad, _)) = &self.nodes[id].bad {
                 println!("front bad: {:?}", bad);
-                self.notify_node_is_bad(id, bad.clone());
+                self.notify_node_is_bad(id, bad.clone(), None);
             } else {
                 println!("one_step_concretize {:?}", id);
                 self.one_step_concretize(id);
@@ -488,19 +515,19 @@ impl<'a, T: TransitionSystem> BARMC<T> {
         );
         return self.reachable_frontier.is_empty() || self.is_starts_bad();
     }
-    pub fn step_until_stop(&mut self) -> bool {
+
+    pub fn step_until_stop(&mut self) -> BARMCResult<T::Config> {
         while !self.step() {}
         self.recompute_start_component();
         self.print_graph_dot();
 
         if self.is_starts_bad() {
-            println!("bad");
             for s in self.starts.iter() {
                 if self.nodes[*s].bad.is_some() {
-                    println!("{:?}", self.get_bad_path(*s));
+                    return BARMCResult::BadPath(self.get_bad_path(*s));
                 }
             }
-            return false;
+            panic!();
         } else {
             println!("closed");
             // save state as json
@@ -511,7 +538,7 @@ impl<'a, T: TransitionSystem> BARMC<T> {
                 .collect_vec();
             serde_json::to_writer(std::fs::File::create("graph.json").unwrap(), &nodes).unwrap();
 
-            return true;
+            return BARMCResult::Closed;
         }
     }
 }

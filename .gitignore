@@ -1,3 +1,6 @@
 /target
 /ttt2
 *.dot
+/logs
+flamegraph.svg
+graph.json

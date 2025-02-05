@@ -1,10 +1,12 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 pub trait ConfigTrait:
-    Clone + Eq + std::hash::Hash + std::fmt::Debug + Serialize + for<'a> Deserialize<'a>
+    Clone + Eq + std::hash::Hash + std::fmt::Debug + Serialize + for<'a> Deserialize<'a> + Display
 {
 }
-pub trait ConfigLangTrait: Clone + std::fmt::Debug + Serialize + for<'a> Deserialize<'a> {
+pub trait ConfigLangTrait: Clone + std::fmt::Debug + Serialize + for<'a> Deserialize<'a> + PartialEq + Eq {
     type Config: ConfigTrait;
     fn accept(&self, c: &Self::Config) -> bool;
     fn includes(&self, c: &Self) -> bool;

@@ -1,0 +1,1179 @@
+[
+  {
+    "problem": "665.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "666.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "667.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "668.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "670.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "671.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "672.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "673.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "674.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "675.ari",
+    "results": []
+  },
+  {
+    "problem": "676.ari",
+    "results": []
+  },
+  {
+    "problem": "677.ari",
+    "results": []
+  },
+  {
+    "problem": "678.ari",
+    "results": []
+  },
+  {
+    "problem": "679.ari",
+    "results": []
+  },
+  {
+    "problem": "680.ari",
+    "results": []
+  },
+  {
+    "problem": "681.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "682.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "683.ari",
+    "results": []
+  },
+  {
+    "problem": "684.ari",
+    "results": []
+  },
+  {
+    "problem": "685.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "688.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "691.ari",
+    "results": []
+  },
+  {
+    "problem": "694.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "696.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "699.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "700.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "701.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "702.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "703.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "704.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "707.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "708.ari",
+    "results": []
+  },
+  {
+    "problem": "710.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "711.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "712.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "714.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "717.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "718.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "719.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "720.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "721.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "723.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "725.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "726.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "727.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "728.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "729.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "732.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "733.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "735.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "736.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "737.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "739.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "740.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "741.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "743.ari",
+    "results": []
+  },
+  {
+    "problem": "744.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "745.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "746.ari",
+    "results": []
+  },
+  {
+    "problem": "749.ari",
+    "results": []
+  },
+  {
+    "problem": "750.ari",
+    "results": []
+  },
+  {
+    "problem": "752.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "753.ari",
+    "results": []
+  },
+  {
+    "problem": "754.ari",
+    "results": []
+  },
+  {
+    "problem": "755.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "756.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "757.ari",
+    "results": []
+  },
+  {
+    "problem": "758.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "759.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "761.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "762.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "763.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "764.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "NO"
+      }
+    ]
+  },
+  {
+    "problem": "767.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "770.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "771.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "772.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "774.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "776.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "777.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "779.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "780.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "783.ari",
+    "results": [
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "786.ari",
+    "results": []
+  },
+  {
+    "problem": "787.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "788.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "789.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "791.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "979.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "982.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "984.ari",
+    "results": [
+      {
+        "solver": "CO3",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "990.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "996.ari",
+    "results": [
+      {
+        "solver": "Moca",
+        "result": "YES"
+      },
+      {
+        "solver": "Moca+CeTA",
+        "result": "YES"
+      },
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "998.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "1000.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "1127.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "1129.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "1130.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      }
+    ]
+  },
+  {
+    "problem": "1612.ari",
+    "results": []
+  },
+  {
+    "problem": "1613.ari",
+    "results": [
+      {
+        "solver": "NaTT",
+        "result": "YES"
+      },
+      {
+        "solver": "infChecker",
+        "result": "YES"
+      }
+    ]
+  }
+]

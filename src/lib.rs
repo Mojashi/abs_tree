@@ -4,3 +4,4 @@ pub mod tree_automaton;
 pub mod abstractor;
 pub mod ts_impl;
 pub mod util;
+pub mod coco;

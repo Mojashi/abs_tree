@@ -23,7 +23,6 @@ struct PatternMatchResult {
 }
 
 impl<F: SymbolTrait> TreeAutomaton<F> {
-    // TODO: DNFをやめて、全部一つのオートマトンの中に入れて、複数箇所に同時に適用する操作を表現した方が良い
     pub fn apply_trs_rule(
         &self,
         rule: &Rule<F>,
@@ -69,39 +68,44 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
         //println!("match_result: {:?}", match_result);
         let match_result = match_result
             .into_iter()
-            .map(|m| self.match_result_to_trees(m))
+            .flat_map(|m| self.match_result_to_trees(m))
             .collect_vec();
 
         let mut ret = self.clone();
         for (position, assignment) in match_result {
             let assignment_aut = map_rhs(&rule.rhs, &assignment, &univ_aut);
-            ret = ret
-                .substitute_state_tree(position, &assignment_aut, true)
-                .reduce_size();
-            //ここで、assignment_autを使わないようなTreeの中には、ruleが適用可能なものも含まれており、これはつまり、apply_trs_ruleは0~1回の適用を許している
+            if assignment_aut.is_empty() {
+                continue;
+            }
+            ret = ret.substitute_state_tree(position, &assignment_aut, true);
         }
-        vec![ret]
+        ret = ret.reduce_size();
+        if ret.is_empty() {
+            vec![]
+        } else {
+            vec![ret]
+        }
     }
     fn match_result_to_trees(
         &self,
         m: PatternMatchResult,
-    ) -> (State, HashMap<u32, TreeAutomaton<F>>) {
-        (
-            m.position,
-            m.assignment
-                .iter()
-                .map(|(k, v)| {
-                    (
-                        *k,
-                        v.iter()
-                            .map(|s| self.state_language(*s))
-                            // このオートマトンに対してパターンマッチしている以上、何かしらの制約があるはずなのでReduce
-                            .reduce(|a, b| a.intersect(&b).clone())
-                            .unwrap(),
-                    )
-                })
-                .collect::<HashMap<_, _>>(),
-        )
+        // マッチ結果の木を実際にintersectionしてみて、どれかが空になるなら、そのマッチングは失敗である
+    ) -> Option<(State, HashMap<u32, TreeAutomaton<F>>)> {
+        let mut ret = HashMap::new();
+        for (k, v) in m.assignment.iter() {
+            let lang = v.iter()
+                        .map(|s| self.state_language(*s))
+                        // このオートマトンに対してパターンマッチしている以上、何かしらの制約があるはずなのでReduce
+                        .reduce(|a, b| a.intersect(&b).clone())
+                        .unwrap()
+                        .refresh_all_states()
+                        .reduce_size();
+            if lang.is_empty() {
+                return None;
+            }
+            ret.insert(*k, lang);
+        }
+        Some((m.position, ret))
     }
     fn pattern_match_states(&self, pattern: &Term<F>) -> Vec<PatternMatchResult> {
         /*
@@ -217,15 +221,14 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
                     position: top,
                     assignment,
                 });
-            let patterns = patterns.into_iter().map(|a| self.match_result_to_trees(a));
+            let patterns = patterns.into_iter().flat_map(|a| self.match_result_to_trees(a));
 
             for (pos, assign) in patterns {
-                let mut subst_aut = self.state_language(pos).trim_unreachable_states();
                 let mut failed = false;
+                let mut concrete_assign = HashMap::new();
                 for (k, v) in assign.iter() {
                     if let Some(e) = v.get_example() {
-                        let t = Self::construct_singleton_aut_ground_term(&e);
-                        subst_aut = subst_aut.substitute_state_tree(*k, &t, false);
+                        concrete_assign.insert(*k, e);
                     } else {
                         failed = true;
                         break;
@@ -234,15 +237,14 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
                 if failed {
                     continue;
                 }
-                if let Some(ex) = subst_aut.get_example() {
-                    let var = 0;
-                    let upward_ex = self.get_upward_example(pos, var);
-                    if let Some(upward_ex) = upward_ex {
-                        let mut var_map = HashMap::new();
-                        var_map.insert(var, ex);
-                        let term = upward_ex.subst_ground(&var_map);
-                        return Some(term);
-                    }
+                let g_term = term.subst_ground(&concrete_assign);
+                let var = 0;
+                let upward_ex = self.get_upward_example(pos, var);
+                if let Some(upward_ex) = upward_ex {
+                    let mut var_map = HashMap::new();
+                    var_map.insert(var, g_term);
+                    let term = upward_ex.subst_ground(&var_map);
+                    return Some(term);
                 }
             }
         }
@@ -252,31 +254,40 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
     // 部分木としてTermを含んでいたら、一つ具体的な例を返す
     // 効率悪そう
     pub fn find_intersection_with_subterm(&self, term: &Term<F>) -> Option<GroundTerm<F>> {
-        println!("find_intersection_with_term: {}", term);
+        for &top in self.states.iter() {
+            let patterns = self
+                .pattern_match_aux(top, term)
+                .into_iter()
+                .map(|assignment| PatternMatchResult {
+                    position: top,
+                    assignment,
+                })
+                .into_iter()
+                .collect_vec();
+            //println!("patterns: {:?}", patterns);
+            let patterns = patterns.into_iter().flat_map(|a| self.match_result_to_trees(a));
 
-        let patterns = self.pattern_match_states(term);
-        let patterns = patterns.into_iter().map(|a| self.match_result_to_trees(a));
-        for (pos, assign) in patterns {
-            let mut subst_aut = self.state_language(pos).trim_unreachable_states();
-            let mut failed = false;
-            for (k, v) in assign.iter() {
-                if let Some(e) = v.get_example() {
-                    let t = Self::construct_singleton_aut_ground_term(&e);
-                    subst_aut = subst_aut.substitute_state_tree(*k, &t, false);
-                } else {
-                    failed = true;
-                    break;
+            for (pos, assign) in patterns {
+                //println!("pos: {:?}, assign: {:?}", pos, assign);
+                let mut failed = false;
+                let mut concrete_assign = HashMap::new();
+                for (k, v) in assign.iter() {
+                    if let Some(e) = v.get_example() {
+                        concrete_assign.insert(*k, e);
+                    } else {
+                        failed = true;
+                        break;
+                    }
                 }
-            }
-            if failed {
-                continue;
-            }
-            if let Some(ex) = subst_aut.get_example() {
+                if failed {
+                    continue;
+                }
+                let g_term = term.subst_ground(&concrete_assign);
                 let var = 0;
                 let upward_ex = self.get_upward_example(pos, var);
                 if let Some(upward_ex) = upward_ex {
                     let mut var_map = HashMap::new();
-                    var_map.insert(var, ex);
+                    var_map.insert(var, g_term);
                     let term = upward_ex.subst_ground(&var_map);
                     return Some(term);
                 }
@@ -303,7 +314,7 @@ mod tests {
             .collect();
 
         let rule = Rule::from_string("(F x y) -> (H x y)").unwrap();
-        println!("rule: {:?}", rule);
+        //println!("rule: {:?}", rule);
 
         let aut1 = TreeAutomaton::construct_singleton_aut_ground_term(&term1);
         let aut2 = TreeAutomaton::union_all(&aut1.apply_trs_rule(&rule, &symbols));
@@ -312,12 +323,9 @@ mod tests {
         aut2.save_dot("test_trs_rule_apply.dot");
 
         assert!(aut2.evaluate(&term2));
-        assert!(!aut2.evaluate(&term1));
+        assert!(aut2.evaluate(&term1));
 
-        let aut3 = TreeAutomaton::construct_singleton_aut_ground_term(&term2);
+        let aut3 = TreeAutomaton::construct_singleton_aut_ground_term(&term2).union(&aut1);
         assert!(aut2.is_equivalent_to(&aut3));
-
-        let aut4 = TreeAutomaton::union_all(&aut2.apply_trs_rule(&rule, &symbols));
-        assert!(aut4.is_empty());
     }
 }

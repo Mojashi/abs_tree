@@ -1,0 +1,46 @@
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun true 0)
+(fun false 0)
+(fun s 1)
+(fun + 2)
+(fun - 2)
+(fun mod 2)
+(fun sum_divisors 2)
+(fun perfect? 1)
+(fun odd? 1)
+(fun even? 1)
+
+; 加算の定義
+(rule (+ 0 x) x)
+(rule (+ (s x) y) (s (+ x y)))
+
+; 減算の定義
+(rule (- x 0) x)
+(rule (- (s x) (s y)) (- x y))
+
+; x ≤ y の判定
+(rule (leq 0 y) true)
+(rule (leq (s x) 0) false)
+(rule (leq (s x) (s y)) (leq x y))
+
+; mod の定義（div を使わずに減算のみで定義）
+(rule (mod x y) x (= (leq x y) false))  ; x < y の場合は x が余り
+(rule (mod x y) (mod (- x y) y) (= (leq x y) true))  ; x >= y の場合は x から y を引いて再帰
+
+(rule (sum_divisors x 0) 0)
+(rule (sum_divisors x (s y)) (+ (sum_divisors x y) (s y)) (= (mod x (s y)) 0))
+(rule (sum_divisors x (s y)) (sum_divisors x y) (= (mod x (s y)) (s z)) )
+
+(rule (perfect? (s x)) (= (sum_divisors (s x) x)))
+
+; 奇数判定
+(rule (odd? 0) false)
+(rule (odd? (s 0)) true)
+(rule (odd? (s (s x))) (odd? x))
+
+;(infeasible? (= (perfect? (s 0)) true))
+;(infeasible? (= (perfect? (s (s (s (s (s 0)))))) true))
+; 奇数の完全数が存在するか？
+
+;(infeasible? (= (perfect? x) true) (= (odd? x) true))

@@ -113,12 +113,27 @@ impl<F: SymbolTrait> GroundTerm<F> {
             }
         }
     }
+
+    pub fn map<V: SymbolTrait>(&self, f: &impl Fn(F) -> V) -> GroundTerm<V> {
+        GroundTerm {
+            symbol: f(self.symbol.clone()),
+            children: self.children.iter().map(|c| c.map(f)).collect(),
+        }
+    }
 }
 
-
-impl <F: SymbolTrait + Display> fmt::Display for GroundTerm<F> {
+impl<F: SymbolTrait> fmt::Display for GroundTerm<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}({})", self.symbol, self.children.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(" "))
+        write!(
+            f,
+            "{}({})",
+            self.symbol,
+            self.children
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
     }
 }
 
@@ -245,6 +260,15 @@ impl<F: SymbolTrait> Term<F> {
             Term::Function { symbol, children } => GroundTerm {
                 symbol: symbol.clone(),
                 children: children.iter().map(|c| c.subst_ground(s_map)).collect(),
+            },
+        }
+    }
+    pub fn subst_term(&self, s_map: &HashMap<u32, Term<F>>) -> Term<F> {
+        match self {
+            Term::Variable { symbol } => s_map.get(symbol).unwrap_or(self).clone(),
+            Term::Function { symbol, children } => Term::Function {
+                symbol: symbol.clone(),
+                children: children.iter().map(|c| c.subst_term(s_map)).collect(),
             },
         }
     }

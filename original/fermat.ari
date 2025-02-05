@@ -1,0 +1,34 @@
+(format CTRS oriented :problem infeasibility)
+(fun 0 0)
+(fun true 0)
+(fun false 0)
+(fun s 1)
+(fun + 2)
+(fun - 2)
+(fun * 2)
+(fun power 2)
+(fun leq 2)
+
+; 加算の定義
+(rule (+ 0 x) x)
+(rule (+ (s x) y) (s (+ x y)))
+
+; 減算の定義
+(rule (- 0 x) x)
+(rule (- (s x) (s y)) (- x y))
+
+; 乗算の定義
+(rule (* 0 x) 0)
+(rule (* (s x) y) (+ y (* x y)))
+
+; x ≤ y の判定
+(rule (leq 0 y) true)
+(rule (leq (s x) 0) false)
+(rule (leq (s x) (s y)) (leq x y))
+
+; 冪乗の定義（power(a, b) = a^b）
+(rule (power x 0) (s 0))
+(rule (power x (s y)) (* x (power x y)))
+
+; フェルマーの最終定理の否定が不可能であることを証明
+(infeasible? (= (leq (s (s (s 0))) n) true) (= (+ (power x n) (power y n)) (power z n)))

@@ -2,7 +2,10 @@ use itertools::Itertools;
 use maplit::{hashmap, hashset};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet, VecDeque}, io, iter::once, sync::atomic::AtomicU32
+    collections::{HashMap, HashSet, VecDeque},
+    io,
+    iter::once,
+    sync::atomic::AtomicU32,
 };
 use std::{fmt::Display, io::Write};
 
@@ -49,7 +52,7 @@ pub fn create_wildcard_transitions<F: SymbolTrait>(
         .collect()
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TreeAutomaton<F: SymbolTrait> {
     pub states: HashSet<State>,
     pub top_states: HashSet<State>, // accepting states for bottom-up evaluation
@@ -171,6 +174,25 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
         }
     }
 
+    pub fn assert_valid_funs(&self, funs: &HashSet<Fun<F>>) -> bool {
+        let mut ret = true;
+        for t in self.transitions_topdown.values().flatten() {
+            if !funs.contains(&Fun {
+                symbol: t.symbol.clone(),
+                arity: t.children.len(),
+                condition_intermidiate_fun: false,
+            }) && !funs.contains(&Fun {
+                symbol: t.symbol.clone(),
+                arity: t.children.len(),
+                condition_intermidiate_fun: true,
+            }) {
+                println!("invalid fun: {:?}", t);
+                ret = false;
+            }
+        }
+        ret
+    }
+
     pub fn construct_singleton_aut_ground_term(ground_term: &GroundTerm<F>) -> Self {
         let term = ground_term.to_term_with_varmap(&hashmap! {});
         let funcs = ground_term.extract_funcs();
@@ -243,13 +265,15 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
     pub fn reachable_states_from_bottom(&self) -> HashSet<State> {
         let mut reachable = HashSet::new();
         let mut stack = self.bottom_states.keys().cloned().collect::<Vec<_>>();
+        reachable.extend(self.bottom_states.keys().cloned());
         while let Some(state) = stack.pop() {
-            if reachable.insert(state) {
-                if let Some(transitions) = self.transitions_bottomup.get(&state) {
-                    for transition in transitions {
-                        if transition.0.children.iter().all(|c| reachable.contains(c)) {
-                            stack.push(transition.0.parent);
-                        }
+            if let Some(transitions) = self.transitions_bottomup.get(&state) {
+                for transition in transitions {
+                    if !reachable.contains(&transition.0.parent)
+                        && transition.0.children.iter().all(|c| reachable.contains(c))
+                    {
+                        reachable.insert(transition.0.parent);
+                        stack.push(transition.0.parent);
                     }
                 }
             }
@@ -425,53 +449,55 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
             true
         };
 
-        let post_pairs = |chain: &HashMap<State, Vec<HashSet<State>>>,
-                          a: State,
-                          bs: &HashSet<State>|
-         -> Vec<(State, HashSet<State>)> {
-            let emp_vec = vec![];
-            let mut ret = vec![];
-            for t_a in self.transitions_bottomup.get(&a).unwrap_or(&vec![]) {
-                let a_parent = t_a.0.parent;
+        let post_pairs =
+            |chain: &HashMap<State, Vec<HashSet<State>>>,
+             a: State,
+             bs: &HashSet<State>|
+             -> Vec<(State, HashSet<State>)> {
+                let emp_vec = vec![];
+                let mut ret: Vec<(u32, HashSet<u32>)> = vec![];
+                let bbs = vec![bs.clone()];
+                let empvec = vec![];
 
-                let applicable_args_b = t_a
-                    .0
-                    .children
-                    .iter()
-                    .enumerate()
-                    .map(|(child_idx, c)| {
-                        if child_idx == t_a.1 {
-                            bs.clone()
-                        } else {
-                            chain
-                                .get(c)
-                                .unwrap_or(&vec![])
-                                .iter()
-                                .cloned()
-                                .fold(HashSet::new(), |acc, x| acc.union(&x).cloned().collect())
+                for (t_a, t_a_idx) in self.transitions_bottomup.get(&a).unwrap_or(&vec![]) {
+                    let a_parent = t_a.parent;
+
+                    if !t_a.children.iter().all(|c| chain.contains_key(c)) {
+                        continue;
+                    }
+
+                    let applicable_args_b = t_a
+                        .children
+                        .iter()
+                        .enumerate()
+                        .map(|(child_idx, c)| {
+                            if child_idx == *t_a_idx {
+                                &bbs
+                            } else {
+                                chain.get(c).unwrap_or(&empvec)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    let mut b_parents = HashSet::new();
+                    for b in bs.iter() {
+                        let bts = other.transitions_bottomup.get(b).unwrap_or(&emp_vec);
+                        for bt in bts {
+                            if bt.0.symbol == t_a.symbol && !b_parents.contains(&bt.0.parent) {
+                                if bt.0.children.iter().zip(applicable_args_b.iter()).all(
+                                    |(c, b_candidates)| b_candidates.iter().any(|a| a.contains(c)),
+                                ) {
+                                    b_parents.insert(bt.0.parent);
+                                }
+                            }
                         }
-                    })
-                    .collect::<Vec<_>>();
-
-                let b_parents = bs
-                    .iter()
-                    .flat_map(|b| other.transitions_bottomup.get(b).unwrap_or(&emp_vec))
-                    .filter(|(t_b, _)| {
-                        t_b.symbol == t_a.0.symbol
-                            && t_b
-                                .children
-                                .iter()
-                                .zip(applicable_args_b.iter())
-                                .all(|(c, b_candidates)| b_candidates.contains(c))
-                    })
-                    .map(|(t_b, _)| t_b.parent)
-                    .collect::<HashSet<_>>();
-
-                ret.push((a_parent, b_parents));
-            }
-
-            ret
-        };
+                    }
+                    if b_parents.len() > 0 {
+                        ret.push((a_parent, b_parents));
+                    }
+                }
+                ret
+            };
 
         let self_sym_to_bottoms = self.symbol_to_bottom_states();
         let otrs_sym_to_bottoms = other.symbol_to_bottom_states();
@@ -481,16 +507,13 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
         {
             return false;
         }
-        let inits = self_sym_to_bottoms.values().flatten().map(|self_bottom| {
-            let keys = self.bottom_states.get(self_bottom).unwrap();
-            let otrs_bottoms = keys
+        let keys = self_sym_to_bottoms.keys().collect::<HashSet<_>>();
+        let inits = keys.iter().flat_map(|s| {
+            self_sym_to_bottoms[s]
                 .iter()
-                .flat_map(|k| otrs_sym_to_bottoms.get(k).unwrap())
-                .cloned()
-                .collect::<HashSet<_>>();
-            (*self_bottom, otrs_bottoms.clone())
+                .map(|a| (a, otrs_sym_to_bottoms[s].clone()))
         });
-        for (s, states) in inits {
+        for (&s, states) in inits {
             if self.top_states.contains(&s) && other.top_states.is_disjoint(&states) {
                 return false;
             }
@@ -498,16 +521,25 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
                 todos.push_back((s, states));
             }
         }
+        let mut itr = 0;
         while let Some((a, bs)) = todos.pop_front() {
             for (a, bs) in post_pairs(&chain, a, &bs) {
+                itr += 1;
                 if self.top_states.contains(&a) && other.top_states.is_disjoint(&bs) {
                     return false;
                 }
                 if add_to_chain(&mut chain, a, bs.clone()) {
+                    todos.retain(|(a2, bs2)| a2 != &a || !bs2.is_subset(&bs));
                     todos.push_back((a, bs));
                 }
             }
         }
+        println!(
+            "itr: {:?}; {:?} vs {:?}",
+            itr,
+            self.states.len(),
+            other.states.len()
+        );
 
         true
     }
@@ -556,26 +588,32 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
             .values()
             .flatten()
             .flat_map(|t| {
-                let children_combinations = t
-                    .children
-                    .iter()
-                    .map(|c| {
-                        if *c == s {
-                            if preserve_original_behaviour {
-                                aut.top_states.iter().chain(once(c)).cloned().collect_vec()
+                let children_combinations = if t.children.len() == 0 {
+                    vec![vec![]]
+                } else {
+                    t.children
+                        .iter()
+                        .map(|c| {
+                            if *c == s {
+                                if preserve_original_behaviour {
+                                    aut.top_states.iter().chain(once(c)).cloned().collect_vec()
+                                } else {
+                                    aut.top_states.iter().cloned().collect_vec()
+                                }
                             } else {
-                                aut.top_states.iter().cloned().collect_vec()
+                                vec![*c]
                             }
-                        } else {
-                            vec![*c]
-                        }
+                        })
+                        .multi_cartesian_product()
+                        .collect_vec()
+                };
+                children_combinations
+                    .into_iter()
+                    .map(move |children| Transition {
+                        children,
+                        parent: t.parent,
+                        symbol: t.symbol.clone(),
                     })
-                    .multi_cartesian_product();
-                children_combinations.map(move |children| Transition {
-                    children,
-                    parent: t.parent,
-                    symbol: t.symbol.clone(),
-                })
             })
             .chain(aut.transitions_topdown.values().flatten().cloned())
             .collect();
@@ -586,6 +624,12 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
             .flat_map(|top| {
                 if *top == s && !preserve_original_behaviour {
                     aut.top_states.iter().cloned().collect_vec()
+                } else if *top == s {
+                    aut.top_states
+                        .iter()
+                        .chain(once(top))
+                        .cloned()
+                        .collect_vec()
                 } else {
                     vec![*top]
                 }
@@ -675,7 +719,6 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
     // ex: G(A x)
     pub fn get_upward_example(&self, target_state: State, var: u32) -> Option<Term<F>> {
         let aut = self.trim_unreachable_states();
-        aut.save_dot("aut.dot");
         let mut cur_term: Term<F> = Term::Variable { symbol: var };
         let mut cur_state = target_state;
         let mut reached = HashSet::new();
@@ -792,6 +835,8 @@ mod tests {
         let a = TreeAutomaton::construct_singleton_aut_ground_term(&t1);
         let b = TreeAutomaton::universal_aut(&funcs);
 
+        a.save_dot("a.dot");
+        b.save_dot("b.dot");
         assert!(a.is_subset_of(&b));
     }
 
@@ -814,10 +859,6 @@ mod tests {
         let t2 = GroundTerm::from_string("(b)").unwrap();
         let b = TreeAutomaton::construct_singleton_aut_ground_term(&t2);
 
-        a.save_dot("a.dot");
-        b.save_dot("b.dot");
-        println!("a: {:?}", a);
-        println!("b: {:?}", b);
         assert!(!a.is_subset_of(&b));
         assert!(!b.is_subset_of(&a));
     }
@@ -875,5 +916,38 @@ mod tests {
         );
         assert!(a.is_subset_of(&a2));
         assert!(!a2.is_subset_of(&a));
+    }
+
+    #[test]
+    fn construct_singleton_aut_term() {
+        let term = Term::Function {
+            symbol: 103,
+            children: vec![Term::Variable { symbol: 2 }],
+        };
+        let funcs = hashset![Fun {
+            symbol: 103,
+            arity: 1,
+            condition_intermidiate_fun: false
+        }];
+        let aut = TreeAutomaton::construct_singleton_aut_term(&term, &funcs);
+        assert!(aut.evaluate(&GroundTerm {
+            symbol: 103,
+            children: vec![GroundTerm {
+                symbol: 2,
+                children: vec![]
+            }]
+        }));
+    }
+
+    #[test]
+    fn test_intersect() {
+        let a = GroundTerm::from_string("(f a)").unwrap();
+        let b = GroundTerm::from_string("(f b)").unwrap();
+        let a_aut = TreeAutomaton::construct_singleton_aut_ground_term(&a);
+        let b_aut = TreeAutomaton::construct_singleton_aut_ground_term(&b);
+        let a_and_b = a_aut.intersect(&b_aut);
+        assert!(!a_and_b.evaluate(&a));
+        assert!(!a_and_b.evaluate(&b));
+        assert!(a_and_b.is_empty());
     }
 }
