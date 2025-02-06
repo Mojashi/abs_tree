@@ -23,6 +23,19 @@ struct PatternMatchResult {
 }
 
 impl<F: SymbolTrait> TreeAutomaton<F> {
+    pub fn is_univ_state(
+        &self,
+        state: State,
+        symbols: &HashSet<Fun<F>>,
+    ) -> bool {
+        symbols.iter().all(|f| {
+            self.transitions_topdown
+                .get(&state)
+                .unwrap_or(&vec![])
+                .iter()
+                .any(|t| t.symbol == f.symbol && t.children.iter().all(|c| *c == state) && t.parent == state)
+        })
+    }
     pub fn apply_trs_rule(
         &self,
         rule: &Rule<F>,
@@ -72,12 +85,20 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
             .collect_vec();
 
         let mut ret = self.clone();
+        let mut applied = false;
         for (position, assignment) in match_result {
             let assignment_aut = map_rhs(&rule.rhs, &assignment, &univ_aut);
             if assignment_aut.is_empty() {
                 continue;
             }
+            if self.is_univ_state(position, symbols) {
+                continue;
+            }
+            applied = true;
             ret = ret.substitute_state_tree(position, &assignment_aut, true);
+        }
+        if !applied {
+            return vec![];
         }
         ret = ret.reduce_size();
         if ret.is_empty() {

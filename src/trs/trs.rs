@@ -136,6 +136,11 @@ impl<F: SymbolTrait> ConditionalRule<F> {
     }
 }
 
+
+// l -> c(d(l,r),and(eq(a,b),eq(c,d)))
+// and(true,true)->true
+// eq(a,a)->true 
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Fun<F: SymbolTrait> {
     pub symbol: F,
