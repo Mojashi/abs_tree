@@ -129,7 +129,8 @@ impl<'a, T: TransitionSystem> BARMC<T> {
                 continue;
             }
             let cur_node = self.get_node(cur).unwrap();
-            if next_rel && cur_node.bad.is_none() {
+            if next_rel && cur_node.bad.is_none() && cur_node.abstracted {
+                println!("checking inclusion {:?} <= {:?}", node.id, cur_node.id);
                 if cur_node.seq.includes(&node.seq) {
                     return Some(cur);
                 }

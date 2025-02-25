@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display},
@@ -40,7 +39,7 @@ impl<F: SymbolTrait> ICTRS<F> {
 
         let arity_zero_fun = trs.funs.iter().find(|f| f.arity == 0).unwrap();
 
-        let mut main_rule = Rule {
+        let main_rule = Rule {
             lhs: Term::Function {
                 symbol: arity_zero_fun.symbol.clone(),
                 children: vec![],
@@ -50,39 +49,22 @@ impl<F: SymbolTrait> ICTRS<F> {
                 children: vec![],
             },
         };
-        let mut conds = self.query.cond.clone();
-        // let pairtial_ground_cond = self
-        //     .query
-        //     .cond
-        //     .iter()
-        //     .enumerate()
-        //     .find(|c| c.1.rhs.is_ground() || c.1.lhs.is_ground());
-        // if let Some((p_idx, p)) = pairtial_ground_cond {
-        //     conds.remove(p_idx);
-        //     main_rule = p.clone();
-        // } 
-
+        let conds = self.query.cond.clone();
         let query_num_conds = conds.len();
         if query_num_conds == 0 {
+            // super trivial case
             return ITRS {
                 trs,
                 query: main_rule,
             };
         }
-        let intermidiate_fun = trs.get_or_insert_condition_intermidiate_func(query_num_conds);
 
         let query_crule = ConditionalRule {
             lhs: main_rule.lhs.clone(),
             rhs: main_rule.rhs.clone(),
             conds,
         };
-
-        let query = crule_to_rule(query_crule, intermidiate_fun);
-        let query = Rule {
-            lhs: query.rhs.clone(),
-            rhs: main_rule.rhs.clone(),
-        };
-
+        let query = crule_to_rule(query_crule, &trs.intermidiate_funs);
         ITRS { trs, query }
     }
 }

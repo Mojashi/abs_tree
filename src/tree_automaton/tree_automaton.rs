@@ -432,6 +432,7 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
     }
     // check L(A) \subseteq L(B). Antichain based algorithm
     pub fn is_subset_of(&self, other: &Self) -> bool {
+        println!("is_subset_of {:?} vs {:?}", self.states.len(), other.states.len());
         let mut chain: HashMap<State, Vec<HashSet<State>>> = HashMap::new();
         let mut todos: VecDeque<(State, HashSet<State>)> = VecDeque::new();
 
@@ -580,7 +581,7 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
         aut: &TreeAutomaton<F>,
         preserve_original_behaviour: bool,
     ) -> TreeAutomaton<F> {
-        let aut = aut.refresh_all_states();
+        //assert!(self.states.intersection(&aut.states).count() == 0);
         let transitions = self
             .transitions_topdown
             .values()

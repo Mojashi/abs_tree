@@ -61,12 +61,16 @@ impl TransitionSystemITRS {
             children: vec![],
         };
 
-        let funs = itrs.funs().into_iter().collect::<HashSet<_>>();
+        let funs = itrs.funs().into_iter().chain(vec![Fun {
+            symbol: start_fun,
+            arity: 0,
+            condition_intermidiate_fun: false,
+        }]).chain(itrs.trs.intermidiate_funs.to_vec()).collect::<HashSet<_>>();
         let original_funs = funs
-            .clone()
-            .into_iter()
-            .filter(|f| f.condition_intermidiate_fun == false)
-            .collect::<HashSet<_>>();
+            .clone();
+            // .into_iter()
+            // .filter(|f| f.condition_intermidiate_fun == false)
+            // .collect::<HashSet<_>>();
         Self {
             itrs,
             original_funs,

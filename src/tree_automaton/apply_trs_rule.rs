@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use maplit::{hashmap, hashset};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap, HashSet},
     iter::Map,
 };
 
@@ -23,17 +23,17 @@ struct PatternMatchResult {
 }
 
 impl<F: SymbolTrait> TreeAutomaton<F> {
-    pub fn is_univ_state(
-        &self,
-        state: State,
-        symbols: &HashSet<Fun<F>>,
-    ) -> bool {
+    pub fn is_univ_state(&self, state: State, symbols: &HashSet<Fun<F>>) -> bool {
         symbols.iter().all(|f| {
             self.transitions_topdown
                 .get(&state)
                 .unwrap_or(&vec![])
                 .iter()
-                .any(|t| t.symbol == f.symbol && t.children.iter().all(|c| *c == state) && t.parent == state)
+                .any(|t| {
+                    t.symbol == f.symbol
+                        && t.children.iter().all(|c| *c == state)
+                        && t.parent == state
+                })
         })
     }
     pub fn apply_trs_rule(
@@ -101,7 +101,7 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
             return vec![];
         }
         ret = ret.reduce_size();
-        if ret.is_empty() {
+        if ret.is_subset_of(self) {
             vec![]
         } else {
             vec![ret]
@@ -113,18 +113,23 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
         // マッチ結果の木を実際にintersectionしてみて、どれかが空になるなら、そのマッチングは失敗である
     ) -> Option<(State, HashMap<u32, TreeAutomaton<F>>)> {
         let mut ret = HashMap::new();
+        let mut stateset_tree_map: HashMap<BTreeSet<State>, TreeAutomaton<F>> = HashMap::new();
         for (k, v) in m.assignment.iter() {
-            let lang = v.iter()
+            let lang = stateset_tree_map
+                .entry(v.iter().cloned().collect())
+                .or_insert_with(|| {
+                    v.iter()
                         .map(|s| self.state_language(*s))
                         // このオートマトンに対してパターンマッチしている以上、何かしらの制約があるはずなのでReduce
                         .reduce(|a, b| a.intersect(&b).clone())
                         .unwrap()
+                        .reduce_size()
                         .refresh_all_states()
-                        .reduce_size();
+                });
             if lang.is_empty() {
                 return None;
             }
-            ret.insert(*k, lang);
+            ret.insert(*k, lang.clone());
         }
         Some((m.position, ret))
     }
@@ -242,7 +247,9 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
                     position: top,
                     assignment,
                 });
-            let patterns = patterns.into_iter().flat_map(|a| self.match_result_to_trees(a));
+            let patterns = patterns
+                .into_iter()
+                .flat_map(|a| self.match_result_to_trees(a));
 
             for (pos, assign) in patterns {
                 let mut failed = false;
@@ -286,7 +293,9 @@ impl<F: SymbolTrait> TreeAutomaton<F> {
                 .into_iter()
                 .collect_vec();
             //println!("patterns: {:?}", patterns);
-            let patterns = patterns.into_iter().flat_map(|a| self.match_result_to_trees(a));
+            let patterns = patterns
+                .into_iter()
+                .flat_map(|a| self.match_result_to_trees(a));
 
             for (pos, assign) in patterns {
                 //println!("pos: {:?}, assign: {:?}", pos, assign);

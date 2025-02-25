@@ -74,6 +74,7 @@ where
 pub struct TRS<F: SymbolTrait> {
     pub funs: Vec<Fun<F>>,
     pub rules: Vec<Rule<F>>,
+    pub intermidiate_funs: CondIntermidiateFuns<F>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -83,26 +84,57 @@ pub struct ConditionalRule<F: SymbolTrait> {
     pub conds: Vec<Rule<F>>,
 }
 
-fn gen_conditional_intermidiate_rule<F: SymbolTrait>(f: Fun<F>) -> Rule<F> {
-    let lhs = Term::Function {
-        symbol: f.symbol,
-        children: vec![
-            Term::Variable { symbol: 0 as u32 },
-            Term::Variable { symbol: 1 as u32 },
-        ]
-        .into_iter()
-        .chain((0..(f.arity - 2)).map(|j| Term::Variable {
-            symbol: (j / 2 + 2) as u32,
-        }))
-        .collect(),
-    };
-    let rhs = Term::Variable { symbol: 1 as u32 };
-    Rule { lhs, rhs }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CondIntermidiateFuns<F: SymbolTrait> {
+    true_fun: Fun<F>,
+    and_fun: Fun<F>,
+    eq_fun: Fun<F>,
+    pair_fun: Fun<F>,
+    cond_fun: Fun<F>,
 }
-
+impl <F: SymbolTrait> CondIntermidiateFuns<F> {
+    pub fn new() -> Self {
+        CondIntermidiateFuns {
+            true_fun: Fun {
+                symbol: F::new(),
+                arity: 0,
+                condition_intermidiate_fun: true,
+            },
+            and_fun: Fun {
+                symbol: F::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+            eq_fun: Fun {
+                symbol: F::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+            pair_fun: Fun {
+                symbol: F::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+            cond_fun: Fun {
+                symbol: F::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+        }
+    }
+    pub fn to_vec(&self) -> Vec<Fun<F>> {
+        vec![
+            self.true_fun.clone(),
+            self.and_fun.clone(),
+            self.eq_fun.clone(),
+            self.pair_fun.clone(),
+            self.cond_fun.clone(),
+        ]
+    }
+}
 pub fn crule_to_rule<F: SymbolTrait>(
     crule: ConditionalRule<F>,
-    intermidiate_fun: Fun<F>,
+    intermidiate_fun: &CondIntermidiateFuns<F>,
 ) -> Rule<F> {
     if crule.conds.len() == 0 {
         Rule {
@@ -110,20 +142,37 @@ pub fn crule_to_rule<F: SymbolTrait>(
             rhs: crule.rhs.clone(),
         }
     } else {
-        let lhs = crule.lhs.clone();
-        let rhs = Term::Function {
-            symbol: intermidiate_fun.symbol,
-            children: vec![crule.lhs.clone(), crule.rhs.clone()]
-                .into_iter()
-                .chain(
-                    crule
-                        .conds
-                        .iter()
-                        .flat_map(|c| vec![c.lhs.clone(), c.rhs.clone()]),
-                )
-                .collect(),
-        };
-        Rule { lhs, rhs }
+        let eq_terms = crule
+            .conds
+            .iter()
+            .map(|c| Term::Function {
+                symbol: intermidiate_fun.eq_fun.symbol.clone(),
+                children: vec![c.lhs.clone(), c.rhs.clone()],
+            })
+            .collect::<Vec<_>>();
+        let and_term = eq_terms.iter().fold(
+            Term::Function {
+                symbol: intermidiate_fun.true_fun.symbol.clone(),
+                children: vec![],
+            },
+            |acc, eq| Term::Function {
+                symbol: intermidiate_fun.and_fun.symbol.clone(),
+                children: vec![acc, eq.clone()],
+            },
+        );
+        Rule {
+            lhs: Term::Function {
+                symbol: intermidiate_fun.cond_fun.symbol.clone(),
+                children: vec![
+                    Term::Function {
+                        symbol: intermidiate_fun.pair_fun.symbol.clone(),
+                        children: vec![crule.lhs.clone(), crule.rhs.clone()],
+                    },
+                    and_term,
+                ],
+            },
+            rhs: crule.rhs.clone(),
+        }
     }
 }
 
@@ -135,11 +184,6 @@ impl<F: SymbolTrait> ConditionalRule<F> {
         }
     }
 }
-
-
-// l -> c(d(l,r),and(eq(a,b),eq(c,d)))
-// and(true,true)->true
-// eq(a,a)->true 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Fun<F: SymbolTrait> {
@@ -154,18 +198,93 @@ pub struct CTRS<F: SymbolTrait> {
     pub rules: Vec<ConditionalRule<F>>,
 }
 
+// l -> c(d(l,r),and(eq(a,b),eq(c,d)))
+// c(d(l,r),true) -> r
+// and(true,true)->true
+// eq(a,a)->true
+
 impl<F: SymbolTrait> CTRS<F> {
     pub fn to_trs(&self) -> TRS<F> {
-        let max_num_conds: usize = self.rules.iter().map(|r| r.conds.len()).max().unwrap();
-        let intermidiate_functions = (1..=max_num_conds)
-            .map(|num_conds| Fun {
-                symbol: F::new(),
-                arity: num_conds * 2 + 2,
-                condition_intermidiate_fun: true,
-            })
-            .collect_vec();
-
+        let true_fun = Fun {
+            symbol: F::new(),
+            arity: 0,
+            condition_intermidiate_fun: true,
+        };
+        let and_fun = Fun {
+            symbol: F::new(),
+            arity: 2,
+            condition_intermidiate_fun: true,
+        };
+        let eq_fun = Fun {
+            symbol: F::new(),
+            arity: 2,
+            condition_intermidiate_fun: true,
+        };
+        let pair_fun = Fun {
+            symbol: F::new(),
+            arity: 2,
+            condition_intermidiate_fun: true,
+        };
+        let cond_fun = Fun {
+            symbol: F::new(),
+            arity: 2,
+            condition_intermidiate_fun: true,
+        };
         let mut rules = Vec::new();
+        rules.push(Rule {
+            lhs: Term::Function {
+                symbol: eq_fun.symbol.clone(),
+                children: vec![Term::Variable { symbol: 0 }, Term::Variable { symbol: 0 }],
+            },
+            rhs: Term::Function {
+                symbol: true_fun.symbol.clone(),
+                children: vec![],
+            },
+        });
+        rules.push(Rule {
+            lhs: Term::Function {
+                symbol: and_fun.symbol.clone(),
+                children: vec![
+                    Term::Function {
+                        symbol: true_fun.symbol.clone(),
+                        children: vec![],
+                    },
+                    Term::Function {
+                        symbol: true_fun.symbol.clone(),
+                        children: vec![],
+                    },
+                ],
+            },
+            rhs: Term::Function {
+                symbol: true_fun.symbol.clone(),
+                children: vec![],
+            },
+        });
+        rules.push(Rule {
+            lhs: Term::Function {
+                symbol: cond_fun.symbol.clone(),
+                children: vec![
+                    Term::Function {
+                        symbol: pair_fun.symbol.clone(),
+                        children: vec![Term::Variable { symbol: 0 }, Term::Variable { symbol: 1 }],
+                    },
+                    Term::Function {
+                        symbol: true_fun.symbol.clone(),
+                        children: vec![],
+                    },
+                ],
+            },
+            rhs: Term::Variable { symbol: 1 },
+        });
+        let intermidiate_funs = CondIntermidiateFuns {
+            true_fun,
+            and_fun,
+            eq_fun,
+            pair_fun,
+            cond_fun,
+        };
+
+
         for r in self.rules.iter() {
             if r.conds.len() == 0 {
                 rules.push(Rule {
@@ -173,51 +292,69 @@ impl<F: SymbolTrait> CTRS<F> {
                     rhs: r.rhs.clone(),
                 });
             } else {
-                let i_fun = intermidiate_functions[r.conds.len() - 1].clone();
-                rules.push(crule_to_rule(r.clone(), i_fun));
+                rules.push(crule_to_rule(r.clone(), &intermidiate_funs));
             }
         }
 
-        for i_fun in intermidiate_functions.iter() {
-            rules.push(gen_conditional_intermidiate_rule(i_fun.clone()));
-        }
         TRS {
-            funs: self
-                .funs
-                .iter()
-                .cloned()
-                .chain(intermidiate_functions)
-                .collect(),
+            funs: self.funs.clone(),
             rules,
+            intermidiate_funs,
         }
     }
 }
 
 impl<F: SymbolTrait> TRS<F> {
-    pub fn get_or_insert_condition_intermidiate_func(&mut self, num_cond: usize) -> Fun<F> {
-        let arity = num_cond * 2 + 2;
-        if let Some(f) = self
-            .funs
-            .iter()
-            .find(|f| f.condition_intermidiate_fun && f.arity == arity)
-            .cloned()
-        {
-            f
-        } else {
-            let f = Fun {
-                symbol: F::new(),
-                arity,
-                condition_intermidiate_fun: true,
-            };
-            self.funs.push(f.clone());
-            self.rules.push(gen_conditional_intermidiate_rule(f.clone()));
-            f
-        }
-    }
-
     pub fn rename_symbols_to_u32(&self) -> (TRS<u32>, HashMap<F, u32>) {
         let mut funs = Vec::new();
+        let mut intermidiate_funs = CondIntermidiateFuns {
+            true_fun: Fun {
+                symbol: u32::new(),
+                arity: 0,
+                condition_intermidiate_fun: true,
+            },
+            and_fun: Fun {
+                symbol: u32::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+            eq_fun: Fun {
+                symbol: u32::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+            pair_fun: Fun {
+                symbol: u32::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+            cond_fun: Fun {
+                symbol: u32::new(),
+                arity: 2,
+                condition_intermidiate_fun: true,
+            },
+        };
         let mut fun_map: HashMap<F, u32> = HashMap::new();
+        fun_map.insert(
+            self.intermidiate_funs.true_fun.symbol.clone(),
+            intermidiate_funs.true_fun.symbol.clone(),
+        );
+        fun_map.insert(
+            self.intermidiate_funs.and_fun.symbol.clone(),
+            intermidiate_funs.and_fun.symbol.clone(),
+        );
+        fun_map.insert(
+            self.intermidiate_funs.eq_fun.symbol.clone(),
+            intermidiate_funs.eq_fun.symbol.clone(),
+        );
+        fun_map.insert(
+            self.intermidiate_funs.pair_fun.symbol.clone(),
+            intermidiate_funs.pair_fun.symbol.clone(),
+        );
+        fun_map.insert(
+            self.intermidiate_funs.cond_fun.symbol.clone(),
+            intermidiate_funs.cond_fun.symbol.clone(),
+        );
         for f in self.funs.iter() {
             let new_f = Fun {
                 symbol: fun_map
@@ -229,7 +366,6 @@ impl<F: SymbolTrait> TRS<F> {
             };
             funs.push(new_f);
         }
-
         let mut rules = Vec::new();
         for r in self.rules.iter() {
             let new_rule = Rule {
@@ -239,7 +375,14 @@ impl<F: SymbolTrait> TRS<F> {
             rules.push(new_rule);
         }
 
-        (TRS { funs, rules }, fun_map)
+        (
+            TRS {
+                funs,
+                rules,
+                intermidiate_funs,
+            },
+            fun_map,
+        )
     }
 }
 
